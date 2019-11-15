@@ -1,0 +1,55 @@
+.TH rf 1
+
+.SH NAME
+rf \- A tiny and simple file finder
+
+.SH SYNOPSIS
+.B rf
+[OPTIONS] PATTERNS...
+
+.SH DESCRIPTION
+.B rf
+will find files based on simple substring patterns.
+
+.SH OPTIONS
+.TP
+.B "\-h, \-\-help"
+.br
+Show help message.
+
+.TP
+.B "\-v, \-\-version"
+.br
+Show version.
+
+.TP
+.B "\-b, \-\-basename"
+.br
+Only show the basename of results.
+
+.SH PATTERNS
+Files and directories can be found using very simple patterns.
+
+.TP
+.B "Substrings"
+.br
+A simple string is basically a substring match. So if you supply a
+pattern of 'js', rf will match any file that contains the string 'js'
+anywhere in the filename. If the pattern is '.js' it will match any
+\'.js' or even '.json' files for example, as well as the filename
+\'script.js.backup', in other words the character '.' is just that, it
+doesn't have any special significance such as in regular expressions.
+It also doesn't have any kind of implicit positional information, it
+will just match at any point in the filename.
+
+.TP
+.B "Beginning and end"
+.br
+
+.SH SEE ALSO
+.BR find (1),
+.BR rg (1)
+
+
+.SH COPYRIGHT
+Copyright \(co 2019 Rory Bradford <roryrjb@gmail.com>.
