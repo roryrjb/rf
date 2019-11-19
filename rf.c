@@ -15,6 +15,7 @@
 
 struct switches {
   int basename;
+  int invert;
 };
 
 int version(char *error) {
@@ -30,8 +31,9 @@ int usage(char *error) {
   fprintf(stderr, "Usage: %s [OPTIONS]\n", NAME);
   fprintf(stderr, "\nOptions:\n");
   fprintf(stderr, "  --basename, -b   only show basename in results\n");
+  fprintf(stderr, "  --invert, -v     invert matching\n");
   fprintf(stderr, "  --help, -h       show help\n");
-  fprintf(stderr, "  --version        show version\n");
+  fprintf(stderr, "  --version, -V    show version\n");
   fprintf(stderr, "\n");
 
   return version(error);
@@ -127,7 +129,6 @@ void recurse_find(char **patterns, int *pattern_count, char *dirname,
 
     while ((entry = readdir(dir)) != NULL) {
       int matched = 0;
-      char *parsed = NULL;
 
       switch (entry->d_type) {
       case DT_DIR:
@@ -150,6 +151,7 @@ void recurse_find(char **patterns, int *pattern_count, char *dirname,
           char *pattern = patterns[p];
           char first = pattern[0];
           char last = pattern[strlen(pattern) - 1];
+          char *parsed = NULL;
 
           if (last == '$' && first == '^') {
             // show everything
@@ -183,6 +185,10 @@ void recurse_find(char **patterns, int *pattern_count, char *dirname,
               matched = 1;
             }
           }
+
+          if (parsed != NULL) {
+            free(parsed);
+          }
         }
 
         break;
@@ -190,11 +196,10 @@ void recurse_find(char **patterns, int *pattern_count, char *dirname,
         break;
       }
 
-      if (matched) {
+      if ((matched && (switches->invert == 0)) ||
+          (matched == 0 && (switches->invert == 1))) {
         print_result(path, switches, entry);
       }
-
-      free(parsed);
     }
 
     closedir(dir);
@@ -203,11 +208,13 @@ void recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 int main(int argc, char **argv) {
   static struct option options[] = {{"basename", no_argument, 0, 0},
+                                    {"invert", no_argument, 0, 0},
                                     {"version", no_argument, 0, 0},
                                     {"help", no_argument, 0, 0},
                                     {0, 0, 0, 0}};
 
   int basename = 0;
+  int invert = 0;
 
   int index = 0;
   int res;
@@ -221,11 +228,13 @@ int main(int argc, char **argv) {
         return usage(NULL);
       } else if (strcmp("basename", options[index].name) == 0) {
         basename = 1;
+      } else if (strcmp("invert", options[index].name) == 0) {
+        invert = 1;
       }
 
       break;
 
-    case 'v':
+    case 'V':
       return version(NULL);
 
     case 'h':
@@ -233,6 +242,10 @@ int main(int argc, char **argv) {
 
     case 'b':
       basename = 1;
+      break;
+
+    case 'v':
+      invert = 1;
       break;
     }
   }
@@ -251,7 +264,7 @@ int main(int argc, char **argv) {
       patterns[i] = argv[i + 1];
     }
 
-    struct switches switches = {.basename = basename};
+    struct switches switches = {.basename = basename, .invert = invert};
 
     recurse_find(patterns, &pattern_count, ".", &switches);
     free(patterns);
