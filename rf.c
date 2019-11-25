@@ -16,6 +16,8 @@
 struct switches {
   int basename;
   int invert;
+  int limit;
+  int count;
 };
 
 int version(char *error) {
@@ -32,7 +34,10 @@ int usage(char *error) {
   fprintf(stderr, "\nOptions:\n");
   fprintf(stderr, "  --basename, -b   only show basename in results\n");
   fprintf(stderr, "  --invert, -v     invert matching\n");
-  fprintf(stderr, "  --help, -h       show help\n");
+  fprintf(stderr,
+          "  --limit n        limit to [n] results, all if 0 [default=0]\n");
+
+  fprintf(stderr, "\n  --help, -h       show help\n");
   fprintf(stderr, "  --version, -V    show version\n");
   fprintf(stderr, "\n");
 
@@ -199,6 +204,10 @@ void recurse_find(char **patterns, int *pattern_count, char *dirname,
       if ((matched && (switches->invert == 0)) ||
           (matched == 0 && (switches->invert == 1))) {
         print_result(path, switches, entry);
+
+        if (switches->limit > 0 && ++switches->count == switches->limit) {
+          exit(EXIT_SUCCESS);
+        }
       }
     }
 
@@ -207,19 +216,21 @@ void recurse_find(char **patterns, int *pattern_count, char *dirname,
 }
 
 int main(int argc, char **argv) {
-  static struct option options[] = {{"basename", no_argument, 0, 0},
-                                    {"invert", no_argument, 0, 0},
-                                    {"version", no_argument, 0, 0},
-                                    {"help", no_argument, 0, 0},
-                                    {0, 0, 0, 0}};
+  static struct option options[] = {
+      {"basename", no_argument, 0, 0},    {"invert", no_argument, 0, 0},
+      {"limit", required_argument, 0, 0}, {"version", no_argument, 0, 0},
+      {"help", no_argument, 0, 0},        {0, 0, 0, 0}};
 
   int basename = 0;
   int invert = 0;
+  int limit = 0;
 
   int index = 0;
   int res;
 
-  while ((res = getopt_long(argc, argv, "hvb", options, &index)) > -1) {
+  char *remainder;
+
+  while ((res = getopt_long(argc, argv, "hvVb", options, &index)) > -1) {
     switch (res) {
     case 0:
       if (strcmp("version", options[index].name) == 0) {
@@ -230,6 +241,12 @@ int main(int argc, char **argv) {
         basename = 1;
       } else if (strcmp("invert", options[index].name) == 0) {
         invert = 1;
+      } else if (strcmp("limit", options[index].name) == 0) {
+        limit = strtol(optarg, &remainder, 10);
+
+        if (limit < 0) {
+          return usage("Invalid limit.");
+        }
       }
 
       break;
@@ -264,7 +281,10 @@ int main(int argc, char **argv) {
       patterns[i] = argv[i + 1];
     }
 
-    struct switches switches = {.basename = basename, .invert = invert};
+    int count = 0; // used to count how matches we find
+
+    struct switches switches = {
+        .basename = basename, .invert = invert, .limit = limit, .count = count};
 
     recurse_find(patterns, &pattern_count, ".", &switches);
     free(patterns);
