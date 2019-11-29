@@ -1,9 +1,13 @@
+#define _BSD_SOURCE
+#define _DEFAULT_SOURCE
+
 #include <dirent.h>
 #include <errno.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -100,7 +104,7 @@ void print_result(char *path, struct switches *switches, struct dirent *entry) {
   if (switches->basename) {
     printf("%s\n", entry->d_name);
   } else {
-    char full_path[PATH_MAX];
+    char full_path[MAXPATHLEN];
     full_path[0] = '\0';
     strcat(full_path, path);
     strcat(full_path, "/");
