@@ -39,7 +39,7 @@ int usage(char *error) {
   fprintf(stderr, "  --basename, -b   only show basename in results\n");
   fprintf(stderr, "  --invert, -v     invert matching\n");
   fprintf(stderr,
-          "  --limit n        limit to [n] results, all if 0 [default=0]\n");
+          "  --limit=n        limit to [n] results, all if 0 [default=0]\n");
 
   fprintf(stderr, "\n  --help, -h       show help\n");
   fprintf(stderr, "  --version, -V    show version\n");
