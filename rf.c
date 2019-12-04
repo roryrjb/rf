@@ -143,12 +143,14 @@ static char *strslice(char *source, int start, int end)
 	return output;
 }
 
-static void recurse_find(char **patterns, int *pattern_count, char *dirname,
-			 struct switches *switches)
+/* return 1 if breaking early (e.g. reaching limit) otherwise return 0 */
+static int recurse_find(char **patterns, int *pattern_count, char *dirname,
+			struct switches *switches)
 {
 	DIR *dir;
 
 	char path[MAXPATHLEN] = { '\0' };
+	int break_early = 0;
 	strcat(path, dirname);
 	dir = opendir(path);
 
@@ -169,8 +171,12 @@ static void recurse_find(char **patterns, int *pattern_count, char *dirname,
 					strcat(child_path, path);
 					strcat(child_path, "/");
 					strcat(child_path, entry->d_name);
-					recurse_find(patterns, pattern_count,
-						     child_path, switches);
+					if (recurse_find(
+						    patterns, pattern_count,
+						    child_path, switches)) {
+						break_early = 1;
+						break;
+					};
 				}
 
 				break;
@@ -235,6 +241,11 @@ static void recurse_find(char **patterns, int *pattern_count, char *dirname,
 				break;
 			default:
 				break;
+			} /* switch */
+
+			if (break_early) {
+				closedir(dir);
+				return 1;
 			}
 
 			if ((matched && (switches->invert == 0)) ||
@@ -243,13 +254,16 @@ static void recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 				if (switches->limit > 0 &&
 				    ++switches->count == switches->limit) {
-					exit(EXIT_SUCCESS);
+					closedir(dir);
+					return 1;
 				}
 			}
-		}
+		} /* while */
 
 		closedir(dir);
-	}
+	} /* if */
+
+	return 0;
 }
 
 int main(int argc, char **argv)
@@ -331,7 +345,10 @@ int main(int argc, char **argv)
 		switches.limit = limit;
 		switches.count = count;
 
-		recurse_find(patterns, &pattern_count, ".", &switches);
+		if (recurse_find(patterns, &pattern_count, ".", &switches)) {
+			/* finished early because we reached the limit */
+		};
+
 		free(patterns);
 	}
 
