@@ -1,12 +1,23 @@
+.POSIX:
+.SUFFIXES: .c .o
+
 BIN = rf
 OBJS = rf.o
 MANPAGE = rf.1
-CC ?= gcc
+CC = cc
 DEPS = config.h
 LIBS =
 INC =
 CFLAGS := ${CFLAGS}
-CFLAGS += -Wall -O2 -fstack-protector-strong -D_FORTIFY_SOURCE=2 $(INC) $(LIBS)
+CFLAGS += -ansi \
+	  -Wpedantic \
+	  -Wall \
+	  -Werror=format-security \
+	  -Werror=implicit-function-declaration \
+	  -O2 \
+	  -fstack-protector-strong \
+	  -fpie \
+	  -D_FORTIFY_SOURCE=2 $(INC) $(LIBS)
 PREFIX ?= /usr/local
 
 build: $(BIN)
@@ -14,7 +25,18 @@ build: $(BIN)
 $(BIN): $(OBJS)
 	$(CC) $(BIN).c $(CFLAGS) -o $(BIN)
 
-%.o : %.c $(DEPS)
+debug: $(OBJS)
+	$(CC) $(BIN).c $(CFLAGS) -g -o $(BIN)
+
+test: clean debug
+	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) ^$
+	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) ^$$
+	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) rf
+
+static: $(OBJS)
+	$(CC) $(BIN).c $(CFLAGS) -static -o $(BIN)
+
+%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 install: build
