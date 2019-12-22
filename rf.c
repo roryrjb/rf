@@ -191,6 +191,7 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 					char last =
 						pattern[strlen(pattern) - 1];
 					char *parsed = NULL;
+					int arg_len = strlen(pattern);
 
 					if (last == '$' && first == '^') {
 						/* show everything */
@@ -210,19 +211,31 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 					} else if (last == '$') {
 						/* match at end */
 						parsed =
-							strslice(pattern, 0, 1);
+							arg_len == 1 ?
+								NULL :
+								strslice(
+									pattern,
+									0, 1);
 
 						if (at_side(0, entry->d_name,
-							    parsed)) {
+							    arg_len == 1 ?
+								    pattern :
+								    parsed)) {
 							matched = 1;
 						}
 					} else if (first == '^') {
 						/* match at beginning */
 						parsed =
-							strslice(pattern, 1, 0);
+							arg_len == 1 ?
+								NULL :
+								strslice(
+									pattern,
+									1, 0);
 
 						if (at_side(1, entry->d_name,
-							    parsed)) {
+							    arg_len == 1 ?
+								    pattern :
+								    parsed)) {
 							matched = 1;
 						}
 					} else {
@@ -328,7 +341,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (optind > 0) {
+	if (optind > 1) {
 		int i = 0;
 		struct switches switches;
 		int pattern_count = optind - 1;
