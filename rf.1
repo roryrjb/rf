@@ -44,10 +44,10 @@ Files and directories can be found using very simple patterns.
 .B "Substrings"
 .br
 A simple string is basically a substring match. So if you supply a
-pattern of 'js', rf will match any file that contains the string 'js'
-anywhere in the filename. If the pattern is '.js' it will match any
-\'.js' or even '.json' files for example, as well as the filename
-\'script.js.backup', in other words the character '.' is just that, it
+pattern of "js", rf will match any file that contains the string "js"
+anywhere in the filename. If the pattern is ".js" it will match any
+".js" or even ".json" files for example, as well as the filename
+"script.js.backup", in other words the character "." is just that, it
 doesn't have any special significance such as in regular expressions.
 It also doesn't have any kind of implicit positional information, it
 will just match at any point in the filename.
@@ -55,6 +55,21 @@ will just match at any point in the filename.
 .TP
 .B "Beginning and end"
 .br
+There are two characters which are treated as special. The caret
+character "^" signifies *at the beginning of* the filename. So for
+example if you specify the substring of "bar" it will match the
+files "bar", "barbar", "foobar" and "foobarbaz", as that substring
+appears at some point in the filename. If you specify the substring
+of "^bar" it will only match the files "bar" and "barbar" as that
+substring only appears at the beginning of those filenames.
+
+On the other side, if you use the dollar character "$" it will only
+match if at the end of the filename. So in the previous example if
+you specified "bar$" it would match both "foobar" and "barbar".
+
+You can use these characters in combination to only match the whole
+string. So with our imaginary directory above, specifying "^bar$" will
+only match the file "bar".
 
 .SH SEE ALSO
 .BR find (1),
