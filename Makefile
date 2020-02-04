@@ -29,9 +29,9 @@ debug: $(OBJS)
 	$(CC) $(BIN).c $(CFLAGS) -g -o $(BIN)
 
 test: clean debug
-	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) ^$
-	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) ^$$
-	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) rf
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) ^$
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) ^$$
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --error-exitcode=1 ./$(BIN) rf
 
 static: $(OBJS)
 	$(CC) $(BIN).c $(CFLAGS) -static -o $(BIN)
