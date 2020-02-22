@@ -2,6 +2,7 @@
 .SUFFIXES: .c .o
 
 BIN = rf
+VERSION = 0.0.2
 OBJS = rf.o
 MANPAGE = rf.1
 CC = cc
@@ -17,7 +18,10 @@ CFLAGS += -ansi \
 	  -O2 \
 	  -fstack-protector-strong \
 	  -fpie \
-	  -D_FORTIFY_SOURCE=2 $(INC) $(LIBS)
+	  -D_FORTIFY_SOURCE=2 \
+	  -DVERSION='"$(VERSION)"' \
+	  -DNAME='"$(BIN)"' \
+	  $(INC) $(LIBS)
 PREFIX ?= /usr/local
 
 build: $(BIN)
