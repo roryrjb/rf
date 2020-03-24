@@ -14,9 +14,6 @@
 
 #include "config.h"
 
-#define NAME "rf"
-#define VERSION "0.0.1"
-
 struct switches {
   int basename;
   int dirname;
