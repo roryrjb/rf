@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
 
   char *remainder;
 
-  while ((res = getopt_long(argc, argv, "hvVb", options, &index)) > -1) {
+  while ((res = getopt_long(argc, argv, "hvVbd", options, &index)) > -1) {
     switch (res) {
     case 0:
       if (strcmp("version", options[index].name) == 0) {
@@ -297,6 +297,10 @@ int main(int argc, char **argv) {
 
     case 'b':
       basename = 1;
+      break;
+
+    case 'd':
+      dirname = 1;
       break;
 
     case 'v':
