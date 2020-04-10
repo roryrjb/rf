@@ -2,7 +2,7 @@
 .SUFFIXES: .c .o
 
 BIN = rf
-VERSION = 0.0.2
+VERSION = 0.0.3
 OBJS = rf.o
 MANPAGE = rf.1
 CC = cc
@@ -45,9 +45,11 @@ static: $(OBJS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 install: build
-	install $(BIN) $(DESTDIR)$(PREFIX)/bin/
-	install -TD $(MANPAGE) $(DESTDIR)$(PREFIX)/man/man1/$(MANPAGE)
-	gzip $(PREFIX)/man/man1/$(MANPAGE)
+	install -Dm755 $(BIN) $(DESTDIR)$(PREFIX)/bin/
+	install -Dm444 $(MANPAGE) $(DESTDIR)$(PREFIX)/man/man1/$(MANPAGE)
+
+readme:
+	MANWIDTH=80 man ./rf.1 > README
 
 clean:
 	rm -vf $(BIN) *.o
