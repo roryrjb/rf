@@ -3,6 +3,7 @@
 
 #include <dirent.h>
 #include <errno.h>
+#include <fnmatch.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,14 +23,12 @@ struct switches {
 	int count;
 };
 
-static int version(char *error)
-{
+static int version(char *error) {
 	fprintf(stderr, "%s version %s\n", NAME, VERSION);
 	return error == NULL ? 0 : 1;
 }
 
-static int usage(char *error)
-{
+static int usage(char *error) {
 	if (error != NULL) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
@@ -39,9 +38,7 @@ static int usage(char *error)
 	fprintf(stderr, "  --basename, -b   only show basename in results\n");
 	fprintf(stderr, "  --dirname, -d    only show dirname in results\n");
 	fprintf(stderr, "  --invert, -v     invert matching\n");
-	fprintf(stderr,
-			"  --limit=n        limit to [n] results, all if 0 [default=0]\n");
-
+	fprintf(stderr, "  --limit=n        limit to [n] results, allif 0\n");
 	fprintf(stderr, "\n  --help, -h       show help\n");
 	fprintf(stderr, "  --version, -V    show version\n");
 	fprintf(stderr, "\n");
@@ -49,8 +46,7 @@ static int usage(char *error)
 	return version(error);
 }
 
-static int is_child(char *dirname)
-{
+static int is_child(char *dirname) {
 	if (strcmp("..", dirname) == 0 || strcmp(".", dirname) == 0) {
 		return 0;
 	}
@@ -58,12 +54,11 @@ static int is_child(char *dirname)
 	return 1;
 }
 
-static int not_in_array(char **arr, char *dirname, size_t size)
-{
+static int not_in_array(char **arr, char *dirname, size_t size) {
 	int i = 0;
 
 	for (; i < size; i++) {
-		if (strstr(dirname, arr[i])) {
+		if (fnmatch(arr[i], dirname, 0) == 0) {
 			return 0;
 		}
 	}
@@ -71,8 +66,7 @@ static int not_in_array(char **arr, char *dirname, size_t size)
 	return 1;
 }
 
-static int at_side(int beginning, char *filename, char *str)
-{
+static int at_side(int beginning, char *filename, char *str) {
 	int c = 0;
 	int matched = 1;
 
@@ -97,8 +91,7 @@ static int at_side(int beginning, char *filename, char *str)
 	return matched;
 }
 
-static int excluded_extension(char *filename)
-{
+static int excluded_extension(char *filename) {
 	int i = 0;
 
 	for (; i < ignored_extensions_size; i++) {
@@ -112,9 +105,8 @@ static int excluded_extension(char *filename)
 	return 0;
 }
 
-static void print_result(char *path, struct switches *switches,
-						 struct dirent *entry)
-{
+static void print_result(
+	char *path, struct switches *switches, struct dirent *entry) {
 	if (switches->basename) {
 		printf("%s\n", entry->d_name);
 	} else {
@@ -131,28 +123,12 @@ static void print_result(char *path, struct switches *switches,
 	}
 }
 
-static char *strslice(char *source, int start, int end)
-{
-	int i = 0;
-	int diff = start + end;
-	int len = strlen(source) - diff;
-	char *output = malloc(sizeof(char *) * len);
-	memset(output, '\0', len);
-
-	for (; i < len; i++) {
-		output[i] = source[i + start];
-	}
-
-	return output;
-}
-
 /* return 1 if breaking early (e.g. reaching limit) otherwise return 0 */
 static int recurse_find(char **patterns, int *pattern_count, char *dirname,
-						struct switches *switches)
-{
+	struct switches *switches) {
 	DIR *dir;
 
-	char path[MAXPATHLEN] = { '\0' };
+	char path[MAXPATHLEN] = {'\0'};
 	int break_early = 0;
 	strcat(path, dirname);
 	dir = opendir(path);
@@ -167,14 +143,14 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 			switch (entry->d_type) {
 			case DT_DIR:
 				if (is_child(entry->d_name) &&
-					not_in_array(ignored_dirs, entry->d_name,
-								 ignored_dirs_size)) {
-					char child_path[MAXPATHLEN] = { '\0' };
+					not_in_array(
+						ignored_dirs, entry->d_name, ignored_dirs_size)) {
+					char child_path[MAXPATHLEN] = {'\0'};
 					strcat(child_path, path);
 					strcat(child_path, "/");
 					strcat(child_path, entry->d_name);
-					if (recurse_find(patterns, pattern_count, child_path,
-									 switches)) {
+					if (recurse_find(
+							patterns, pattern_count, child_path, switches)) {
 						break_early = 1;
 						break;
 					};
@@ -188,44 +164,10 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 				for (; p < *pattern_count; p++) {
 					char *pattern = patterns[p];
-					char first = pattern[0];
-					char last = pattern[strlen(pattern) - 1];
 					char *parsed = NULL;
-					int arg_len = strlen(pattern);
 
-					if (last == '$' && first == '^') {
-						/* show everything */
-						if (strlen(pattern) == 2) {
-							matched = 1;
-						} else {
-							/* match whole string */
-							parsed = strslice(pattern, 1, 1);
-
-							if (strcmp(entry->d_name, parsed) == 0) {
-								matched = 1;
-							}
-						}
-					} else if (last == '$') {
-						/* match at end */
-						parsed = arg_len == 1 ? NULL : strslice(pattern, 0, 1);
-
-						if (at_side(0, entry->d_name,
-									arg_len == 1 ? pattern : parsed)) {
-							matched = 1;
-						}
-					} else if (first == '^') {
-						/* match at beginning */
-						parsed = arg_len == 1 ? NULL : strslice(pattern, 1, 0);
-
-						if (at_side(1, entry->d_name,
-									arg_len == 1 ? pattern : parsed)) {
-							matched = 1;
-						}
-					} else {
-						/* substring match */
-						if (strstr(entry->d_name, pattern) != NULL) {
-							matched = 1;
-						}
+					if (fnmatch(pattern, entry->d_name, 0) == 0) {
+						matched = 1;
 					}
 
 					if (parsed != NULL) {
@@ -261,15 +203,11 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 	return 0;
 }
 
-int main(int argc, char **argv)
-{
-	static struct option options[] = { { "basename", no_argument, 0, 0 },
-									   { "dirname", no_argument, 0, 0 },
-									   { "invert", no_argument, 0, 0 },
-									   { "limit", required_argument, 0, 0 },
-									   { "version", no_argument, 0, 0 },
-									   { "help", no_argument, 0, 0 },
-									   { 0, 0, 0, 0 } };
+int main(int argc, char **argv) {
+	static struct option options[] = {{"basename", no_argument, 0, 0},
+		{"dirname", no_argument, 0, 0}, {"invert", no_argument, 0, 0},
+		{"limit", required_argument, 0, 0}, {"version", no_argument, 0, 0},
+		{"help", no_argument, 0, 0}, {0, 0, 0, 0}};
 
 	int basename = 0;
 	int dirname = 0;
