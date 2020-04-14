@@ -160,6 +160,7 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 				break;
 			case DT_REG:
 				if (excluded_extension(entry->d_name)) {
+					matched = 0;
 					break;
 				}
 
