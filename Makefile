@@ -48,8 +48,5 @@ install: build
 	install -Dm755 $(BIN) $(DESTDIR)$(PREFIX)/bin/
 	install -Dm444 $(MANPAGE) $(DESTDIR)$(PREFIX)/man/man1/$(MANPAGE)
 
-readme:
-	MANWIDTH=80 man ./rf.1 > README
-
 clean:
 	rm -vf $(BIN) *.o
