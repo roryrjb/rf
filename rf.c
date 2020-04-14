@@ -15,34 +15,22 @@
 
 #include "config.h"
 
+extern char *__progname;
+
 struct switches {
-	int basename;
-	int dirname;
 	int invert;
 	int limit;
 	int count;
+	int unlink;
+	char *cmd;
 };
 
-static int version(char *error) {
-	fprintf(stderr, "%s version %s\n", NAME, VERSION);
-	return error == NULL ? 0 : 1;
-}
-
-static int usage(char *error) {
+static void usage(char *error) {
 	if (error != NULL) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(stderr, "Usage: %s [OPTIONS] PATTERNS...\n\n", NAME);
-	fprintf(stderr, "Options:\n");
-	fprintf(stderr, "  --basename, -b   only show basename in results\n");
-	fprintf(stderr, "  --dirname, -d    only show dirname in results\n");
-	fprintf(stderr, "  --invert, -v     invert matching\n");
-	fprintf(stderr, "  --limit=n        limit to [n] results\n\n");
-	fprintf(stderr, "  --help, -h       show help\n");
-	fprintf(stderr, "  --version, -V    show version\n\n");
-
-	return version(error);
+	fprintf(stderr, "usage: %s [-lvSU] pattern ...\n", __progname);
 }
 
 static int is_child(char *dirname) {
@@ -65,60 +53,61 @@ static int not_in_array(char **arr, char *dirname, size_t size) {
 	return 1;
 }
 
-static int at_side(int beginning, char *filename, char *str) {
-	int c = 0;
-	int matched = 1;
-
-	if (beginning) {
-		for (; c < strlen(str); c++) {
-			if (str[c] != filename[c]) {
-				matched = 0;
-				break;
-			}
-		}
-	} else {
-		int d = 0;
-
-		for (c = strlen(str), d = strlen(filename); c >= 0; c--, d--) {
-			if (str[c] != filename[d]) {
-				matched = 0;
-				break;
-			}
-		}
-	}
-
-	return matched;
-}
-
 static int excluded_extension(char *filename) {
 	int i = 0;
 
 	for (; i < ignored_extensions_size; i++) {
-		int res = at_side(0, filename, ignored_extensions[i]);
+		int res = fnmatch(ignored_extensions[i], filename, 0);
 
-		if (res) {
-			return res;
+		if (res == 0) {
+			return 1;
 		}
 	}
 
 	return 0;
 }
 
-static void print_result(
+static void handle_result(
 	char *path, struct switches *switches, struct dirent *entry) {
-	if (switches->basename && is_child(entry->d_name) != 0) {
-		printf("%s\n", entry->d_name);
-	} else {
-		char full_path[MAXPATHLEN];
-		full_path[0] = '\0';
-		strcat(full_path, path);
+	int i, j, k = 0;
 
-		if (!switches->dirname) {
-			strcat(full_path, "/");
-			strcat(full_path, entry->d_name);
-		}
+	char cmd[MAXPATHLEN];
+	memset(cmd, '\0', MAXPATHLEN);
 
-		if (is_child(entry->d_name) != 0) {
+	char full_path[MAXPATHLEN];
+	full_path[0] = '\0';
+	strcat(full_path, path);
+	strcat(full_path, "/");
+	strcat(full_path, entry->d_name);
+
+	if (is_child(entry->d_name) != 0) {
+		if (switches->unlink) {
+			int r = unlink(full_path);
+
+			if (r < 0) {
+				perror("unlink");
+			} else {
+				printf("removed '%s'\n", full_path);
+			}
+		} else if (switches->cmd != NULL) {
+			int l = strlen(switches->cmd);
+
+			for (i = 0, j = 0; i < l; i++) {
+				char c = switches->cmd[i];
+
+				if (c == '%' && (i + 1 < l) && switches->cmd[i + 1] == 's') {
+					i++;
+
+					for (k = 0; k < strlen(full_path); k++) {
+						cmd[j++] = full_path[k];
+					}
+				} else {
+					cmd[j++] = c;
+				}
+			}
+
+			system(cmd);
+		} else {
 			printf("%s\n", full_path);
 		}
 	}
@@ -183,7 +172,7 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 			}
 
 			if (matched) {
-				print_result(path, switches, entry);
+				handle_result(path, switches, entry);
 
 				if (switches->limit > 0 &&
 					++switches->count == switches->limit) {
@@ -200,62 +189,66 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 }
 
 int main(int argc, char **argv) {
-	static struct option options[] = {{"basename", no_argument, 0, 0},
-		{"dirname", no_argument, 0, 0}, {"invert", no_argument, 0, 0},
-		{"limit", required_argument, 0, 0}, {"version", no_argument, 0, 0},
-		{"help", no_argument, 0, 0}, {0, 0, 0, 0}};
-
-	int basename = 0;
-	int dirname = 0;
+	/* printing switches */
 	int invert = 0;
 	int limit = 0;
-	int index = 0;
-	int res;
+	int printing = 0;
+
+	/* operating switches */
+	int unlink = 0;
+	char *cmd;
+
 	int count = 0; /* used to count how matches we find */
+	int ch;
 
 	char *remainder;
 
-	while ((res = getopt_long(argc, argv, "hvVbd", options, &index)) > -1) {
-		switch (res) {
-		case 0:
-			if (strcmp("version", options[index].name) == 0) {
-				return version(NULL);
-			} else if (strcmp("help", options[index].name) == 0) {
-				return usage(NULL);
-			} else if (strcmp("basename", options[index].name) == 0) {
-				basename = 1;
-			} else if (strcmp("dirname", options[index].name) == 0) {
-				dirname = 1;
-			} else if (strcmp("invert", options[index].name) == 0) {
-				invert = 1;
-			} else if (strcmp("limit", options[index].name) == 0) {
-				limit = strtol(optarg, &remainder, 10);
-
-				if (limit < 0) {
-					return usage("Invalid limit.");
-				}
-			}
-
-			break;
-
-		case 'V':
-			return version(NULL);
-
+	while ((ch = getopt(argc, argv, "l:vS:U")) > -1) {
+		switch (ch) {
 		case 'h':
-			return usage(NULL);
-
-		case 'b':
-			basename = 1;
-			break;
-
-		case 'd':
-			dirname = 1;
-			break;
+			usage(NULL);
+			exit(EXIT_SUCCESS);
 
 		case 'v':
 			invert = 1;
 			break;
+
+		case 'S':
+			if (system(NULL) == 0) {
+				fprintf(stderr, "A shell isn't available.");
+				exit(EXIT_FAILURE);
+			}
+
+			cmd = optarg;
+
+			break;
+
+		case 'l':
+			limit = strtol(optarg, &remainder, 10);
+
+			if (limit < 0) {
+				usage("Invalid limit.");
+				exit(EXIT_FAILURE);
+			}
+
+			break;
+
+		case 'U':
+			unlink = 1;
+			break;
 		}
+	}
+
+	/* sanity check opts for conflicts */
+	printing = invert + limit;
+	/* int operating = unlink; */
+
+	if (unlink == 1 && printing > 0) {
+		fprintf(stderr, "Cannot use -U with any of -lv.\n");
+		exit(EXIT_FAILURE);
+	} else if (cmd != NULL && printing > 0) {
+		fprintf(stderr, "Cannot use -S with any of -lv.\n");
+		exit(EXIT_FAILURE);
 	}
 
 	if (optind < argc) {
@@ -276,17 +269,19 @@ int main(int argc, char **argv) {
 			patterns[i] = argv[i + 1];
 		}
 
-		switches.basename = basename;
-		switches.dirname = dirname;
 		switches.invert = invert;
 		switches.limit = limit;
 		switches.count = count;
+		switches.unlink = unlink;
+		switches.cmd = cmd;
 
 		if (recurse_find(patterns, &pattern_count, ".", &switches)) {
 			/* finished early because we reached the limit */
 		};
 
 		free(patterns);
+	} else {
+		usage(NULL);
 	}
 
 	return 0;

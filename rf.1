@@ -1,11 +1,12 @@
 .TH rf 1
 
 .SH NAME
-rf \- A tiny and simple file finder
+rf \- a tiny and simple file finder
 
 .SH SYNOPSIS
-.B rf
-[OPTIONS] PATTERNS...
+.SY rf
+.OP \-lvSU
+.OP pattern ...
 
 .SH DESCRIPTION
 .B rf
@@ -13,34 +14,21 @@ will find files or directories based on one or more glob patterns.
 
 .SH OPTIONS
 .TP
-.B "\-h, \-\-help"
-.br
-Show help message.
-
-.TP
-.B "\-V, \-\-version"
-.br
-Show version.
-
-.TP
-.B "\-b, \-\-basename"
-.br
-Only show the basename of results.
-
-.TP
-.B "\-b, \-\-dirname"
-.br
-Only show the dirname of results.
-
-.TP
-.B "\-v, \-\-invert"
-.br
+.B \-v
 Invert matches.
-
+.
 .TP
-.B "\-\-limit=[n]"
-.br
-Limit to [n] matches.
+.BI \-l count
+Limit to specified matches count.
+.
+.TP
+.B \-U
+Unlink matched file. Cannot be used with any other options.
+.
+.TP
+.BI \-S command
+Run shell command over each file. A %s will be replaced with the relative
+path to the current file. Cannot be used with any other options.
 
 .SH COPYRIGHT
 Copyright \(co 2020 Rory Bradford <roryrjb@gmail.com>.
