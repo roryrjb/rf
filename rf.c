@@ -33,15 +33,14 @@ static int usage(char *error) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(stderr, "Usage: %s [OPTIONS]\n", NAME);
-	fprintf(stderr, "\nOptions:\n");
+	fprintf(stderr, "Usage: %s [OPTIONS] PATTERNS...\n\n", NAME);
+	fprintf(stderr, "Options:\n");
 	fprintf(stderr, "  --basename, -b   only show basename in results\n");
 	fprintf(stderr, "  --dirname, -d    only show dirname in results\n");
 	fprintf(stderr, "  --invert, -v     invert matching\n");
-	fprintf(stderr, "  --limit=n        limit to [n] results, allif 0\n");
-	fprintf(stderr, "\n  --help, -h       show help\n");
-	fprintf(stderr, "  --version, -V    show version\n");
-	fprintf(stderr, "\n");
+	fprintf(stderr, "  --limit=n        limit to [n] results\n\n");
+	fprintf(stderr, "  --help, -h       show help\n");
+	fprintf(stderr, "  --version, -V    show version\n\n");
 
 	return version(error);
 }
