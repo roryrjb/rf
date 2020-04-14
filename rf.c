@@ -107,7 +107,7 @@ static int excluded_extension(char *filename) {
 
 static void print_result(
 	char *path, struct switches *switches, struct dirent *entry) {
-	if (switches->basename) {
+	if (switches->basename && is_child(entry->d_name) != 0) {
 		printf("%s\n", entry->d_name);
 	} else {
 		char full_path[MAXPATHLEN];
@@ -119,7 +119,9 @@ static void print_result(
 			strcat(full_path, entry->d_name);
 		}
 
-		printf("%s\n", full_path);
+		if (is_child(entry->d_name) != 0) {
+			printf("%s\n", full_path);
+		}
 	}
 }
 
@@ -137,7 +139,7 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 		struct dirent *entry;
 
 		while ((entry = readdir(dir)) != NULL) {
-			int matched = 0;
+			int matched = switches->invert ? 1 : 0;
 			int p = 0;
 
 			switch (entry->d_type) {
@@ -164,14 +166,9 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 				for (; p < *pattern_count; p++) {
 					char *pattern = patterns[p];
-					char *parsed = NULL;
 
 					if (fnmatch(pattern, entry->d_name, 0) == 0) {
-						matched = 1;
-					}
-
-					if (parsed != NULL) {
-						free(parsed);
+						matched = switches->invert ? 0 : 1;
 					}
 				}
 
@@ -185,8 +182,7 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 				return 1;
 			}
 
-			if ((matched && (switches->invert == 0)) ||
-				(matched == 0 && (switches->invert == 1))) {
+			if (matched) {
 				print_result(path, switches, entry);
 
 				if (switches->limit > 0 &&
