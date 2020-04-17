@@ -10,7 +10,7 @@ DEPS = config.h
 LIBS =
 INC =
 CFLAGS := ${CFLAGS}
-CFLAGS += -ansi \
+CFLAGS += -std=c99 \
 	  -Wpedantic \
 	  -Wall \
 	  -Werror=format-security \
