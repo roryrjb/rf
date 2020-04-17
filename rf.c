@@ -18,6 +18,7 @@
 extern char *__progname;
 
 struct switches {
+	int substring;
 	int invert;
 	int limit;
 	int count;
@@ -30,7 +31,7 @@ static void usage(char *error) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(stderr, "usage: %s [-lvSU] pattern ...\n", __progname);
+	fprintf(stderr, "usage: %s [-lsvSU] pattern ...\n", __progname);
 }
 
 static int is_child(char *dirname) {
@@ -42,9 +43,7 @@ static int is_child(char *dirname) {
 }
 
 static int not_in_array(char **arr, char *dirname, size_t size) {
-	int i = 0;
-
-	for (; i < size; i++) {
+	for (int i = 0; i < size; i++) {
 		if (fnmatch(arr[i], dirname, 0) == 0) {
 			return 0;
 		}
@@ -54,9 +53,7 @@ static int not_in_array(char **arr, char *dirname, size_t size) {
 }
 
 static int excluded_extension(char *filename) {
-	int i = 0;
-
-	for (; i < ignored_extensions_size; i++) {
+	for (int i = 0; i < ignored_extensions_size; i++) {
 		int res = fnmatch(ignored_extensions[i], filename, 0);
 
 		if (res == 0) {
@@ -70,12 +67,12 @@ static int excluded_extension(char *filename) {
 static void handle_result(
 	char *path, struct switches *switches, struct dirent *entry) {
 	int i, j, k = 0;
-
 	char cmd[MAXPATHLEN];
-	memset(cmd, '\0', MAXPATHLEN);
-
 	char full_path[MAXPATHLEN];
+
+	memset(cmd, '\0', MAXPATHLEN);
 	full_path[0] = '\0';
+
 	strcat(full_path, path);
 	strcat(full_path, "/");
 	strcat(full_path, entry->d_name);
@@ -156,8 +153,14 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 				for (; p < *pattern_count; p++) {
 					char *pattern = patterns[p];
 
-					if (fnmatch(pattern, entry->d_name, 0) == 0) {
-						matched = switches->invert ? 0 : 1;
+					if (switches->substring) {
+						if (strstr(entry->d_name, pattern) != NULL) {
+							matched = switches->invert ? 0 : 1;
+						}
+					} else {
+						if (fnmatch(pattern, entry->d_name, 0) == 0) {
+							matched = switches->invert ? 0 : 1;
+						}
 					}
 				}
 
@@ -190,6 +193,7 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 int main(int argc, char **argv) {
 	/* printing switches */
+	int substring = 0;
 	int invert = 0;
 	int limit = 0;
 	int printing = 0;
@@ -203,11 +207,15 @@ int main(int argc, char **argv) {
 
 	char *remainder;
 
-	while ((ch = getopt(argc, argv, "l:vS:U")) > -1) {
+	while ((ch = getopt(argc, argv, "l:svS:U")) > -1) {
 		switch (ch) {
 		case 'h':
 			usage(NULL);
 			exit(EXIT_SUCCESS);
+
+		case 's':
+			substring = 1;
+			break;
 
 		case 'v':
 			invert = 1;
@@ -244,31 +252,26 @@ int main(int argc, char **argv) {
 	/* int operating = unlink; */
 
 	if (unlink == 1 && printing > 0) {
-		fprintf(stderr, "Cannot use -U with any of -lv.\n");
+		fprintf(stderr, "Cannot use -U with any of -lsv.\n");
 		exit(EXIT_FAILURE);
 	} else if (cmd != NULL && printing > 0) {
-		fprintf(stderr, "Cannot use -S with any of -lv.\n");
+		fprintf(stderr, "Cannot use -S with any of -lsv.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (optind < argc) {
-		while (optind < argc) {
-			optind++;
-		}
-	}
-
-	if (optind > 1) {
 		int i = 0;
 		struct switches switches;
-		int pattern_count = optind - 1;
-		char **patterns = malloc(sizeof(char *) * optind);
+		int pattern_count = argc - optind;
+		char **patterns = malloc(sizeof(char *) * pattern_count);
 
 		memset(patterns, '\0', optind);
 
-		for (; i < optind; i++) {
-			patterns[i] = argv[i + 1];
+		while (optind < argc) {
+			patterns[i++] = argv[optind++];
 		}
 
+		switches.substring = substring;
 		switches.invert = invert;
 		switches.limit = limit;
 		switches.count = count;
