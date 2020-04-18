@@ -192,15 +192,8 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 }
 
 int main(int argc, char **argv) {
-	/* printing switches */
-	int substring = 0;
-	int invert = 0;
-	int limit = 0;
-	int printing = 0;
-
-	/* operating switches */
-	int unlink = 0;
-	char *cmd;
+	struct switches switches = {
+		.substring = 0, .invert = 0, .limit = 0, .unlink = 0, .cmd = NULL};
 
 	int count = 0; /* used to count how matches we find */
 	int ch;
@@ -214,11 +207,11 @@ int main(int argc, char **argv) {
 			exit(EXIT_SUCCESS);
 
 		case 's':
-			substring = 1;
+			switches.substring = 1;
 			break;
 
 		case 'v':
-			invert = 1;
+			switches.invert = 1;
 			break;
 
 		case 'S':
@@ -227,41 +220,42 @@ int main(int argc, char **argv) {
 				exit(EXIT_FAILURE);
 			}
 
-			cmd = optarg;
+			switches.cmd = optarg;
 
 			break;
 
 		case 'l':
-			limit = strtol(optarg, &remainder, 10);
+			do {
+				int limit = strtol(optarg, &remainder, 10);
 
-			if (limit < 0) {
-				usage("Invalid limit.");
-				exit(EXIT_FAILURE);
-			}
+				if (limit < 0) {
+					usage("Invalid limit.");
+					exit(EXIT_FAILURE);
+				}
+				switches.limit = limit;
+			} while (0);
 
 			break;
 
 		case 'U':
-			unlink = 1;
+			switches.unlink = 1;
 			break;
 		}
 	}
 
 	/* sanity check opts for conflicts */
-	printing = invert + limit;
-	/* int operating = unlink; */
+	int printing = switches.invert + switches.limit;
 
-	if (unlink == 1 && printing > 0) {
+	if (switches.unlink == 1 && printing > 0) {
 		fprintf(stderr, "Cannot use -U with any of -lsv.\n");
 		exit(EXIT_FAILURE);
-	} else if (cmd != NULL && printing > 0) {
+	} else if (switches.cmd != NULL && printing > 0) {
 		fprintf(stderr, "Cannot use -S with any of -lsv.\n");
 		exit(EXIT_FAILURE);
 	}
 
 	if (optind < argc) {
 		int i = 0;
-		struct switches switches;
 		int pattern_count = argc - optind;
 		char **patterns = malloc(sizeof(char *) * pattern_count);
 
@@ -270,13 +264,6 @@ int main(int argc, char **argv) {
 		while (optind < argc) {
 			patterns[i++] = argv[optind++];
 		}
-
-		switches.substring = substring;
-		switches.invert = invert;
-		switches.limit = limit;
-		switches.count = count;
-		switches.unlink = unlink;
-		switches.cmd = cmd;
 
 		if (recurse_find(patterns, &pattern_count, ".", &switches)) {
 			/* finished early because we reached the limit */
