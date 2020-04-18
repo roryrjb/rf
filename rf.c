@@ -1,6 +1,9 @@
 #define _BSD_SOURCE
 #define _DEFAULT_SOURCE
 
+#define _POSIX_C_SOURCE 200809L
+#define _XOPEN_SOURCE 600
+
 #include <dirent.h>
 #include <errno.h>
 #include <fnmatch.h>
@@ -13,12 +16,17 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "config.h"
+#include "ignore.h"
 
 extern char *__progname;
 
+struct ignores *global_ignores;
+struct ignores *config_ignores;
+struct ignores *local_ignores;
+
 struct switches {
 	int substring;
+	int wholename;
 	int invert;
 	int limit;
 	int count;
@@ -31,7 +39,7 @@ static void usage(char *error) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(stderr, "usage: %s [-lsvSU] pattern ...\n", __progname);
+	fprintf(stderr, "usage: %s [-lsvw] pattern ...\n", __progname);
 }
 
 static int is_child(char *dirname) {
@@ -42,19 +50,25 @@ static int is_child(char *dirname) {
 	return 1;
 }
 
-static int not_in_array(char **arr, char *dirname, size_t size) {
-	for (int i = 0; i < size; i++) {
-		if (fnmatch(arr[i], dirname, 0) == 0) {
-			return 0;
+static int excluded(char *name) {
+	for (int i = 0; i < global_ignores->size; i++) {
+		int res = fnmatch(global_ignores->list[i], name, 0);
+
+		if (res == 0) {
+			return 1;
 		}
 	}
 
-	return 1;
-}
+	for (int i = 0; i < config_ignores->size; i++) {
+		int res = fnmatch(config_ignores->list[i], name, 0);
 
-static int excluded_extension(char *filename) {
-	for (int i = 0; i < ignored_extensions_size; i++) {
-		int res = fnmatch(ignored_extensions[i], filename, 0);
+		if (res == 0) {
+			return 1;
+		}
+	}
+
+	for (int i = 0; i < local_ignores->size; i++) {
+		int res = fnmatch(local_ignores->list[i], name, 0);
 
 		if (res == 0) {
 			return 1;
@@ -65,48 +79,9 @@ static int excluded_extension(char *filename) {
 }
 
 static void handle_result(
-	char *path, struct switches *switches, struct dirent *entry) {
-	int i, j, k = 0;
-	char cmd[MAXPATHLEN];
-	char full_path[MAXPATHLEN];
-
-	memset(cmd, '\0', MAXPATHLEN);
-	full_path[0] = '\0';
-
-	strcat(full_path, path);
-	strcat(full_path, "/");
-	strcat(full_path, entry->d_name);
-
+	char *full_path, struct switches *switches, struct dirent *entry) {
 	if (is_child(entry->d_name) != 0) {
-		if (switches->unlink) {
-			int r = unlink(full_path);
-
-			if (r < 0) {
-				perror("unlink");
-			} else {
-				printf("removed '%s'\n", full_path);
-			}
-		} else if (switches->cmd != NULL) {
-			int l = strlen(switches->cmd);
-
-			for (i = 0, j = 0; i < l; i++) {
-				char c = switches->cmd[i];
-
-				if (c == '%' && (i + 1 < l) && switches->cmd[i + 1] == 's') {
-					i++;
-
-					for (k = 0; k < strlen(full_path); k++) {
-						cmd[j++] = full_path[k];
-					}
-				} else {
-					cmd[j++] = c;
-				}
-			}
-
-			system(cmd);
-		} else {
-			printf("%s\n", full_path);
-		}
+		printf("%s\n", full_path);
 	}
 }
 
@@ -116,66 +91,70 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 	DIR *dir;
 
 	char path[MAXPATHLEN] = {'\0'};
-	int break_early = 0;
 	strcat(path, dirname);
 	dir = opendir(path);
 
-	if (dir != NULL && not_in_array(ignored_dirs, dirname, ignored_dirs_size)) {
+	if (dir != NULL && !excluded(dirname)) {
 		struct dirent *entry;
 
 		while ((entry = readdir(dir)) != NULL) {
-			int matched = switches->invert ? 1 : 0;
+			int matched = 0;
 			int p = 0;
 
-			switch (entry->d_type) {
-			case DT_DIR:
-				if (is_child(entry->d_name) &&
-					not_in_array(
-						ignored_dirs, entry->d_name, ignored_dirs_size)) {
-					char child_path[MAXPATHLEN] = {'\0'};
-					strcat(child_path, path);
-					strcat(child_path, "/");
-					strcat(child_path, entry->d_name);
+			char full_path[MAXPATHLEN] = {'\0'};
+			strcat(full_path, path);
+			strcat(full_path, "/");
+			strcat(full_path, entry->d_name);
+
+			struct stat entry_stat;
+
+			if (stat(full_path, &entry_stat)) {
+				perror("stat");
+				exit(EXIT_FAILURE);
+			}
+
+			if (entry_stat.st_mode & S_IFDIR) {
+				if (is_child(entry->d_name) && !excluded(entry->d_name)) {
 					if (recurse_find(
-							patterns, pattern_count, child_path, switches)) {
-						break_early = 1;
-						break;
+							patterns, pattern_count, full_path, switches)) {
+						closedir(dir);
+						return 1;
 					};
 				}
-
-				break;
-			case DT_REG:
-				if (excluded_extension(entry->d_name)) {
+			} else if (entry_stat.st_mode & S_IFREG) {
+				if (excluded(entry->d_name)) {
 					matched = 0;
-					break;
+					continue;
 				}
 
 				for (; p < *pattern_count; p++) {
 					char *pattern = patterns[p];
 
 					if (switches->substring) {
-						if (strstr(entry->d_name, pattern) != NULL) {
-							matched = switches->invert ? 0 : 1;
+						if (strstr(
+								switches->wholename ? full_path : entry->d_name,
+								pattern) != NULL) {
+							matched = 1;
 						}
 					} else {
-						if (fnmatch(pattern, entry->d_name, 0) == 0) {
-							matched = switches->invert ? 0 : 1;
+						if (fnmatch(pattern,
+								switches->wholename ? full_path : entry->d_name,
+								0) == 0) {
+							matched = 1;
 						}
 					}
 				}
 
-				break;
-			default:
-				break;
-			} /* switch */
-
-			if (break_early) {
-				closedir(dir);
-				return 1;
+				if (switches->invert) {
+					if (matched)
+						matched = 0;
+					else
+						matched = 1;
+				}
 			}
 
 			if (matched) {
-				handle_result(path, switches, entry);
+				handle_result(full_path, switches, entry);
 
 				if (switches->limit > 0 &&
 					++switches->count == switches->limit) {
@@ -193,14 +172,12 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 int main(int argc, char **argv) {
 	struct switches switches = {
-		.substring = 0, .invert = 0, .limit = 0, .unlink = 0, .cmd = NULL};
+		.substring = 0, .invert = 0, .wholename = 0, .limit = 0, .count = 0};
 
-	int count = 0; /* used to count how matches we find */
 	int ch;
-
 	char *remainder;
 
-	while ((ch = getopt(argc, argv, "l:svS:U")) > -1) {
+	while ((ch = getopt(argc, argv, "l:svw")) > -1) {
 		switch (ch) {
 		case 'h':
 			usage(NULL);
@@ -214,14 +191,8 @@ int main(int argc, char **argv) {
 			switches.invert = 1;
 			break;
 
-		case 'S':
-			if (system(NULL) == 0) {
-				fprintf(stderr, "A shell isn't available.");
-				exit(EXIT_FAILURE);
-			}
-
-			switches.cmd = optarg;
-
+		case 'w':
+			switches.wholename = 1;
 			break;
 
 		case 'l':
@@ -236,28 +207,41 @@ int main(int argc, char **argv) {
 			} while (0);
 
 			break;
-
-		case 'U':
-			switches.unlink = 1;
-			break;
 		}
 	}
 
-	/* sanity check opts for conflicts */
-	int printing = switches.invert + switches.limit;
+	char *home = getenv("HOME");
+	char *xdg_config_home = getenv("XDG_CONFIG_HOME");
+	char cwd[MAXPATHLEN];
 
-	if (switches.unlink == 1 && printing > 0) {
-		fprintf(stderr, "Cannot use -U with any of -lsv.\n");
-		exit(EXIT_FAILURE);
-	} else if (switches.cmd != NULL && printing > 0) {
-		fprintf(stderr, "Cannot use -S with any of -lsv.\n");
+	if (getcwd(cwd, MAXPATHLEN) == NULL) {
+		perror("getcwd");
 		exit(EXIT_FAILURE);
 	}
+
+	char global_ignore_path[(strlen(home) + strlen(".rfignore") + 1)];
+	char config_ignore_path[xdg_config_home
+								? (strlen(xdg_config_home) + strlen("ignore") +
+									  3)
+								: (strlen(cwd) + strlen(".rfignore") + 1)];
+	char local_ignore_path[strlen(cwd) + strlen(".rfignore") + 1];
+	sprintf(global_ignore_path, "%s/%s", home, ".rfignore");
+	sprintf(local_ignore_path, "%s/%s", cwd, ".rfignore");
+
+	if (xdg_config_home) {
+		sprintf(config_ignore_path, "%s/rf/%s", xdg_config_home, "ignore");
+	} else {
+		sprintf(config_ignore_path, "%s/.config/rf/%s", home, "ignore");
+	}
+
+	global_ignores = init_ignores(global_ignore_path);
+	config_ignores = init_ignores(config_ignore_path);
+	local_ignores = init_ignores(local_ignore_path);
 
 	if (optind < argc) {
 		int i = 0;
 		int pattern_count = argc - optind;
-		char **patterns = malloc(sizeof(char *) * pattern_count);
+		char **patterns = calloc(sizeof(char *), pattern_count);
 
 		memset(patterns, '\0', optind);
 
@@ -270,6 +254,9 @@ int main(int argc, char **argv) {
 		};
 
 		free(patterns);
+		free_ignores(global_ignores);
+		free_ignores(config_ignores);
+		free_ignores(local_ignores);
 	} else {
 		usage(NULL);
 	}

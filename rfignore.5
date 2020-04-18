@@ -1,0 +1,20 @@
+.TH rfignore 5
+
+.SH NAME
+rfignore \- ignore specified paths
+
+.SH SYNOPSIS
+$XDG_CONFIG_HOME/rf/ignore, $HOME/.rfignore, .rfignore
+
+.SH DESCRIPTION
+An \fBrfignore\fR file will be used by \fBrf\fR to ignore files and paths
+when iterating through directories. Any matching patterns will not be displayed.
+.sp
+\fBrf\fR will look in all places specified in the synopsis for glob patterns
+on each line and take them all into account.
+
+.SH SEE ALSO
+.BR glob (7)
+
+.SH COPYRIGHT
+Copyright \(co 2019, 2020 Rory Bradford <roryrjb@gmail.com>.

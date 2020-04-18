@@ -5,13 +5,12 @@ rf \- a tiny and simple file finder
 
 .SH SYNOPSIS
 .SY rf
-.OP \-lsvSU
+.OP \-lsvw
 .OP pattern ...
 
 .SH DESCRIPTION
-.B rf
-will find files or directories based on one or more glob (or optionally
-substring) patterns.
+\fBrf\fR will find files or directories based on one or more glob (or optionally
+substring) patterns, while respecting any ignore rules in \fBrfignore\fR files.
 
 .SH OPTIONS
 .TP
@@ -27,13 +26,11 @@ Match using substrings instead of globs.
 Invert matches.
 .
 .TP
-.BI \-S command
-Run shell command over each file. A %s will be replaced with the relative
-path to the current file. Cannot be used with any other options.
-.
-.TP
-.B \-U
-Unlink matched file. Cannot be used with any other options.
+.B \-w
+Match wholename, including path.
+
+.SH SEE ALSO
+.BR rfignore (5)
 
 .SH COPYRIGHT
-Copyright \(co 2020 Rory Bradford <roryrjb@gmail.com>.
+Copyright \(co 2019, 2020 Rory Bradford <roryrjb@gmail.com>.
