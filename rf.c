@@ -19,6 +19,7 @@ extern char *__progname;
 
 struct switches {
 	int substring;
+	int wholename;
 	int invert;
 	int limit;
 	int count;
@@ -31,7 +32,7 @@ static void usage(char *error) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(stderr, "usage: %s [-lsvSU] pattern ...\n", __progname);
+	fprintf(stderr, "usage: %s [-lsvwSU] pattern ...\n", __progname);
 }
 
 static int is_child(char *dirname) {
@@ -65,17 +66,10 @@ static int excluded_extension(char *filename) {
 }
 
 static void handle_result(
-	char *path, struct switches *switches, struct dirent *entry) {
+	char *full_path, struct switches *switches, struct dirent *entry) {
 	int i, j, k = 0;
 	char cmd[MAXPATHLEN];
-	char full_path[MAXPATHLEN];
-
 	memset(cmd, '\0', MAXPATHLEN);
-	full_path[0] = '\0';
-
-	strcat(full_path, path);
-	strcat(full_path, "/");
-	strcat(full_path, entry->d_name);
 
 	if (is_child(entry->d_name) != 0) {
 		if (switches->unlink) {
@@ -127,6 +121,11 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 			int matched = switches->invert ? 1 : 0;
 			int p = 0;
 
+			char full_path[MAXPATHLEN];
+			full_path[0] = '\0';
+			strcat(full_path, path);
+			strcat(full_path, "/");
+
 			switch (entry->d_type) {
 			case DT_DIR:
 				if (is_child(entry->d_name) &&
@@ -150,15 +149,21 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 					break;
 				}
 
+				strcat(full_path, entry->d_name);
+
 				for (; p < *pattern_count; p++) {
 					char *pattern = patterns[p];
 
 					if (switches->substring) {
-						if (strstr(entry->d_name, pattern) != NULL) {
+						if (strstr(
+								switches->wholename ? full_path : entry->d_name,
+								pattern) != NULL) {
 							matched = switches->invert ? 0 : 1;
 						}
 					} else {
-						if (fnmatch(pattern, entry->d_name, 0) == 0) {
+						if (fnmatch(pattern,
+								switches->wholename ? full_path : entry->d_name,
+								0) == 0) {
 							matched = switches->invert ? 0 : 1;
 						}
 					}
@@ -175,7 +180,7 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 			}
 
 			if (matched) {
-				handle_result(path, switches, entry);
+				handle_result(full_path, switches, entry);
 
 				if (switches->limit > 0 &&
 					++switches->count == switches->limit) {
@@ -192,15 +197,19 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 }
 
 int main(int argc, char **argv) {
-	struct switches switches = {
-		.substring = 0, .invert = 0, .limit = 0, .unlink = 0, .cmd = NULL};
+	struct switches switches = {.substring = 0,
+		.invert = 0,
+		.wholename = 0,
+		.limit = 0,
+		.unlink = 0,
+		.cmd = NULL};
 
 	int count = 0; /* used to count how matches we find */
 	int ch;
 
 	char *remainder;
 
-	while ((ch = getopt(argc, argv, "l:svS:U")) > -1) {
+	while ((ch = getopt(argc, argv, "l:svwS:U")) > -1) {
 		switch (ch) {
 		case 'h':
 			usage(NULL);
@@ -212,6 +221,10 @@ int main(int argc, char **argv) {
 
 		case 'v':
 			switches.invert = 1;
+			break;
+
+		case 'w':
+			switches.wholename = 1;
 			break;
 
 		case 'S':
