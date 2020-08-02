@@ -51,27 +51,33 @@ static int is_child(char *dirname) {
 }
 
 static int excluded(char *name) {
-	for (int i = 0; i < global_ignores->size; i++) {
-		int res = fnmatch(global_ignores->list[i], name, 0);
+	if (global_ignores != NULL) {
+		for (int i = 0; i < global_ignores->size; i++) {
+			int res = fnmatch(global_ignores->list[i], name, 0);
 
-		if (res == 0) {
-			return 1;
+			if (res == 0) {
+				return 1;
+			}
 		}
 	}
 
-	for (int i = 0; i < config_ignores->size; i++) {
-		int res = fnmatch(config_ignores->list[i], name, 0);
+	if (config_ignores != NULL) {
+		for (int i = 0; i < config_ignores->size; i++) {
+			int res = fnmatch(config_ignores->list[i], name, 0);
 
-		if (res == 0) {
-			return 1;
+			if (res == 0) {
+				return 1;
+			}
 		}
 	}
 
-	for (int i = 0; i < local_ignores->size; i++) {
-		int res = fnmatch(local_ignores->list[i], name, 0);
+	if (local_ignores != NULL) {
+		for (int i = 0; i < local_ignores->size; i++) {
+			int res = fnmatch(local_ignores->list[i], name, 0);
 
-		if (res == 0) {
-			return 1;
+			if (res == 0) {
+				return 1;
+			}
 		}
 	}
 
@@ -122,15 +128,18 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 				for (; p < *pattern_count; p++) {
 					char *pattern = patterns[p];
 
-					if (switches->substring &&
-						(strstr(switches->wholename ? full_path : entry->d_name,
-							 pattern) != NULL)) {
-						matched = 1;
-					} else if (fnmatch(pattern,
-								   switches->wholename ? full_path
-													   : entry->d_name,
-								   0) == 0) {
-						matched = 1;
+					if (switches->substring) {
+						if (strstr(
+								switches->wholename ? full_path : entry->d_name,
+								pattern) != NULL) {
+							matched = 1;
+						}
+					} else {
+						if (fnmatch(pattern,
+								switches->wholename ? full_path : entry->d_name,
+								0) == 0) {
+							matched = 1;
+						}
 					}
 				}
 
