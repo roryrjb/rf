@@ -27,7 +27,7 @@ struct ignores *init_ignores(char *path) {
 		while ((r = getline(&line, &llen, ignore)) != -1) {
 			char *l = calloc(sizeof(char *), strlen(line) - 1);
 
-			for (int j = 0, k = 0; j < strlen(line); j++) {
+			for (size_t j = 0, k = 0; j < strlen(line); j++) {
 				char c = line[j];
 
 				if (isspace(c)) {

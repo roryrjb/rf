@@ -78,13 +78,6 @@ static int excluded(char *name) {
 	return 0;
 }
 
-static void handle_result(
-	char *full_path, struct switches *switches, struct dirent *entry) {
-	if (is_child(entry->d_name) != 0) {
-		printf("%s\n", full_path);
-	}
-}
-
 /* return 1 if breaking early (e.g. reaching limit) otherwise return 0 */
 static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 	struct switches *switches) {
@@ -123,38 +116,37 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 				}
 			} else if (entry_stat.st_mode & S_IFREG) {
 				if (excluded(entry->d_name)) {
-					matched = 0;
 					continue;
 				}
 
 				for (; p < *pattern_count; p++) {
 					char *pattern = patterns[p];
 
-					if (switches->substring) {
-						if (strstr(
-								switches->wholename ? full_path : entry->d_name,
-								pattern) != NULL) {
-							matched = 1;
-						}
-					} else {
-						if (fnmatch(pattern,
-								switches->wholename ? full_path : entry->d_name,
-								0) == 0) {
-							matched = 1;
-						}
+					if (switches->substring &&
+						(strstr(switches->wholename ? full_path : entry->d_name,
+							 pattern) != NULL)) {
+						matched = 1;
+					} else if (fnmatch(pattern,
+								   switches->wholename ? full_path
+													   : entry->d_name,
+								   0) == 0) {
+						matched = 1;
 					}
 				}
 
 				if (switches->invert) {
-					if (matched)
+					if (matched) {
 						matched = 0;
-					else
+					} else {
 						matched = 1;
+					}
 				}
 			}
 
 			if (matched) {
-				handle_result(full_path, switches, entry);
+				if (is_child(entry->d_name) != 0) {
+					printf("%s\n", full_path);
+				}
 
 				if (switches->limit > 0 &&
 					++switches->count == switches->limit) {
