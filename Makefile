@@ -5,8 +5,8 @@ VERSION = 0.0.5
 OBJS = rf.o ignore.o
 PREFIX = /usr/local
 CC = cc
-CFLAGS = -std=c99 -O2 \
-	  -Wpedantic -Wall \
+CFLAGS = -std=c99 -pedantic -O2 \
+	  -Wall -Wextra -Wsign-compare \
 	  -fstack-protector-strong -fpie \
 	  -D_FORTIFY_SOURCE=2 \
 	  -DVERSION='"$(VERSION)"' \
