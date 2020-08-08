@@ -1,0 +1,45 @@
+This directory provides basic rf integration in Vim.
+
+It can be installed from this directory using make:
+
+    make install
+
+The plugin provides two functions:
+
+*rf*
+
+    :RF
+
+This function runs a getchar() loop, allowing you to search from the
+root of the current working directory, using only substring patterns,
+the idea being that it is very quick and simple to use, rather than
+exposing more of the functionality that rf provides.
+
+I usually bind the function like so:
+
+    map <c-p> :RF <CR>
+
+The function is very simple and will call rf with your pattern
+*at every key stroke*. Usually this is performant enough, but
+with extremely large directory trees, you may have to wait several
+seconds for results, which isn't great. Aside from any improvements
+to the implementation, just make sure that any .rfignore files,
+whether local or global are ignoring everything that can be ignored.
+
+*rf grep*
+
+    :RFGrep search-pattern filename-pattern
+
+This function is a wrapper around `grep -r` and rf. It allows you
+to grep recursively over a smaller subset of files. Again the
+implementation is very simple but with very large directory trees
+or with filename patterns that match a lot of files you may
+hit the argument limit for grep.
+
+*Issues*
+
+Aside from the above mentioned limitations and issues, if you
+are using anything other than a "Bourne" shell (bash, ksh, zsh, sh)
+the functions may not work, in that case you may want to explictly:
+
+    set shell=sh
