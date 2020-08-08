@@ -1,8 +1,7 @@
 #define _BSD_SOURCE
 #define _DEFAULT_SOURCE
 
-#define _POSIX_C_SOURCE 200809L
-#define _XOPEN_SOURCE 600
+#define _XOPEN_SOURCE 700
 
 #include <dirent.h>
 #include <errno.h>
@@ -109,7 +108,7 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 			if (stat(full_path, &entry_stat)) {
 				perror("stat");
-				exit(EXIT_FAILURE);
+				continue;
 			}
 
 			if (entry_stat.st_mode & S_IFDIR) {
