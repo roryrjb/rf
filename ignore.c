@@ -21,8 +21,9 @@ struct ignores *init_ignores(char *path) {
 	char *line = NULL;
 	size_t llen = 0;
 	total_size = IGNORE_SIZE;
-	struct ignores *ignores = calloc(sizeof(struct ignores), 1);
-	ignores->list = calloc(sizeof(char *), IGNORE_SIZE);
+	struct ignores *ignores =
+		(struct ignores *)calloc(sizeof(struct ignores), 1);
+	ignores->list = (char **)calloc(sizeof(char *), IGNORE_SIZE);
 	ignores->size = 0;
 
 	while (getline(&line, &llen, ignore) != -1) {
@@ -36,7 +37,7 @@ struct ignores *init_ignores(char *path) {
 		}
 
 		if (strlen(line) > 0) {
-			char *l = calloc(sizeof(char), strlen(line));
+			char *l = (char *)calloc(sizeof(char), strlen(line));
 
 			if (l == NULL) {
 				fprintf(stderr, "calloc\n");
@@ -54,7 +55,7 @@ struct ignores *init_ignores(char *path) {
 			}
 
 			if (i + 1 > total_size) {
-				ignores->list = realloc(
+				ignores->list = (char **)realloc(
 					ignores->list, sizeof(char *) * (total_size + IGNORE_SIZE));
 				total_size += IGNORE_SIZE;
 			}

@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
 	if (optind < argc) {
 		int i = 0;
 		int pattern_count = argc - optind;
-		char **patterns = calloc(sizeof(char *), pattern_count);
+		char **patterns = (char **)calloc(sizeof(char *), pattern_count);
 
 		memset(patterns, '\0', optind);
 
