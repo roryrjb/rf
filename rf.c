@@ -102,7 +102,11 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 			char full_path[MAXPATHLEN] = {'\0'};
 			strcat(full_path, path);
-			strcat(full_path, "/");
+
+			if (full_path[strlen(full_path) - 1] != '/') {
+				strcat(full_path, "/");
+			}
+
 			strcat(full_path, entry->d_name);
 
 			struct stat entry_stat;
