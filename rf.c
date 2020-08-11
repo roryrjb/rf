@@ -38,7 +38,8 @@ static void usage(char *error) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(stderr, "usage: %s [-lsvw] pattern ...\n", __progname);
+	fprintf(
+		stderr, "usage: %s [-d directory] [-lsvw] pattern ...\n", __progname);
 }
 
 static int is_child(char *dirname) {
@@ -179,6 +180,10 @@ int main(int argc, char **argv) {
 
 	while ((ch = getopt(argc, argv, "l:svw")) > -1) {
 		switch (ch) {
+		case 'd':
+			root = optarg;
+			break;
+
 		case 'h':
 			usage(NULL);
 			exit(EXIT_SUCCESS);
@@ -249,7 +254,7 @@ int main(int argc, char **argv) {
 			patterns[i++] = argv[optind++];
 		}
 
-		if (recurse_find(patterns, &pattern_count, ".", &switches)) {
+		if (recurse_find(patterns, &pattern_count, root, &switches)) {
 			/* finished early because we reached the limit */
 		};
 

@@ -5,6 +5,7 @@ rf \- a tiny and simple file finder
 
 .SH SYNOPSIS
 .SY rf
+.OP \-d directory
 .OP \-lsvw
 .OP pattern ...
 
@@ -13,6 +14,10 @@ rf \- a tiny and simple file finder
 substring) patterns, while respecting any ignore rules in \fBrfignore\fR files.
 
 .SH OPTIONS
+.TP
+.BI \-d directory
+Search from specified directory, otherwise defaults to current working directory.
+.
 .TP
 .BI \-l count
 Limit to specified matches count.
