@@ -2,7 +2,7 @@
 
 BIN = rf
 VERSION = 0.0.5
-OBJS = rf.o ignore.o
+OBJS = rf.o ignore.o config.o
 PREFIX = /usr/local
 CC = cc
 CFLAGS = -std=c99 -pedantic -O2 \
@@ -12,12 +12,12 @@ CFLAGS = -std=c99 -pedantic -O2 \
 	  -DVERSION='"$(VERSION)"' \
 	  -DNAME='"$(BIN)"'
 
-build: $(BIN)
+all: $(BIN)
 
 $(BIN): $(OBJS)
 	$(CC) $(CFLAGS) -o $(BIN) $(OBJS)
 
-install: build
+install: $(BIN)
 	mkdir -p \
 		$(DESTDIR)$(PREFIX)/bin \
 		$(DESTDIR)$(PREFIX)/man/man1 \
@@ -25,6 +25,7 @@ install: build
 	install -m755 $(BIN) $(DESTDIR)$(PREFIX)/bin/
 	install -m444 rf.1 $(DESTDIR)$(PREFIX)/man/man1/
 	install -m444 rfignore.5 $(DESTDIR)$(PREFIX)/man/man5/
+	install -m444 rfconfig.5 $(DESTDIR)$(PREFIX)/man/man5/
 
 clean:
 	rm -vf $(BIN) *.o
