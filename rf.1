@@ -6,6 +6,7 @@ rf \- a tiny and simple file finder
 .SH SYNOPSIS
 .SY rf
 .OP \-d directory
+.OP \-c config
 .OP \-lsvw
 .OP pattern ...
 
@@ -17,6 +18,10 @@ substring) patterns, while respecting any ignore rules in \fBrfignore\fR files.
 .TP
 .BI \-d directory
 Search from specified directory, otherwise defaults to current working directory.
+.
+.TP
+.BI \-c config
+Override config file location.
 .
 .TP
 .BI \-l count
@@ -35,7 +40,8 @@ Invert matches.
 Match wholename, including path.
 
 .SH SEE ALSO
-.BR rfignore (5)
+.BR rfignore (5),
+.BR rfconfig (5)
 
 .SH COPYRIGHT
 Copyright \(co 2019, 2020 Rory Bradford <roryrjb@gmail.com>.

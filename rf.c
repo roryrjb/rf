@@ -15,6 +15,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "ignore.h"
 
 extern char *__progname;
@@ -24,22 +25,23 @@ struct ignores *config_ignores;
 struct ignores *local_ignores;
 
 struct switches {
-	int substring;
-	int wholename;
+	int count;
 	int invert;
 	int limit;
-	int count;
-	int unlink;
-	char *cmd;
+	int substring;
+	int wholename;
 };
+
+int read_links = 0;
 
 static void usage(char *error) {
 	if (error != NULL) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(
-		stderr, "usage: %s [-d directory] [-lsvw] pattern ...\n", __progname);
+	fprintf(stderr,
+		"usage: %s [-d directory] [-c config] [-lsvw] pattern ...\n",
+		__progname);
 }
 
 static int is_child(char *dirname) {
@@ -50,7 +52,11 @@ static int is_child(char *dirname) {
 	return 1;
 }
 
-static int excluded(char *name) {
+static int excluded(const char *name) {
+	if (!fnmatch("/proc/*", name, 0)) {
+		return 1;
+	}
+
 	if (global_ignores != NULL) {
 		for (int i = 0; i < global_ignores->size; i++) {
 			int res = fnmatch(global_ignores->list[i], name, 0);
@@ -85,8 +91,8 @@ static int excluded(char *name) {
 }
 
 /* return 1 if breaking early (e.g. reaching limit) otherwise return 0 */
-static int recurse_find(char **patterns, int *pattern_count, char *dirname,
-	struct switches *switches) {
+static int recurse_find(char **patterns, int *pattern_count,
+	const char *dirname, struct switches *switches) {
 	DIR *dir;
 
 	char path[MAXPATHLEN] = {'\0'};
@@ -111,8 +117,9 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 			struct stat entry_stat;
 
-			if (stat(full_path, &entry_stat)) {
+			if ((read_links ? stat : lstat)(full_path, &entry_stat)) {
 				perror("stat");
+				exit(EXIT_FAILURE);
 				continue;
 			}
 
@@ -177,13 +184,37 @@ static int recurse_find(char **patterns, int *pattern_count, char *dirname,
 
 int main(int argc, char **argv) {
 	struct switches switches = {
-		.substring = 0, .invert = 0, .wholename = 0, .limit = 0, .count = 0};
+		.count = 0,
+		.invert = 0,
+		.limit = 0,
+		.substring = 0,
+		.wholename = 0,
+	};
 
 	int ch;
 	char *remainder;
+	size_t len = 0;
+	const char *root = ".";
+	FILE *fp;
+	char cwd[MAXPATHLEN];
+	int unmatched_error = 0;
+	char wildcard = 0;
+	char *override_config_file = NULL;
 
-	while ((ch = getopt(argc, argv, "l:svw")) > -1) {
+	if (getcwd(cwd, MAXPATHLEN) == NULL) {
+		perror("getcwd");
+		exit(EXIT_FAILURE);
+	}
+
+	char *xdg_config_home = getenv("XDG_CONFIG_HOME");
+	char *home = getenv("HOME");
+
+	while ((ch = getopt(argc, argv, "c:d:l:svw")) > -1) {
 		switch (ch) {
+		case 'c':
+			override_config_file = optarg;
+			break;
+
 		case 'd':
 			root = optarg;
 			break;
@@ -212,6 +243,7 @@ int main(int argc, char **argv) {
 					usage("Invalid limit.");
 					exit(EXIT_FAILURE);
 				}
+
 				switches.limit = limit;
 			} while (0);
 
@@ -219,12 +251,66 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	char *home = getenv("HOME");
-	char *xdg_config_home = getenv("XDG_CONFIG_HOME");
-	char cwd[MAXPATHLEN];
+	char config_file[xdg_config_home
+						 ? (strlen(xdg_config_home) + strlen("ignore") + 3)
+						 : (strlen(cwd) + strlen(".rfignore") + 1)];
 
-	if (getcwd(cwd, MAXPATHLEN) == NULL) {
-		perror("getcwd");
+	if (xdg_config_home) {
+		sprintf(config_file, "%s/rf/%s", xdg_config_home, "config");
+	} else {
+		sprintf(config_file, "%s/.config/rf/%s", home, "config");
+	}
+
+	fp = fopen(override_config_file ? override_config_file : config_file, "r");
+
+	if (fp != NULL) {
+		while ((config_get(&len, fp)) != -1) {
+			if (strlen(config_key) && strlen(config_value)) {
+				if (strcmp(config_key, "symlinks") == 0) {
+					if (strcmp(config_value, "true") == 0) {
+						read_links = 1;
+					} else if (strcmp(config_value, "false") == 0) {
+						read_links = 0;
+					} else {
+						fprintf(stderr,
+							"'%s' is not a valid value for property: %s.\n",
+							config_value, config_key);
+						exit(EXIT_FAILURE);
+					}
+				} else if (strcmp(config_key, "wholename") == 0) {
+					if (strcmp(config_value, "true") == 0) {
+						switches.wholename = 1;
+					} else if (strcmp(config_value, "false") == 0) {
+						/* default */
+					} else {
+						fprintf(stderr,
+							"'%s' is not a valid value for property: %s.\n",
+							config_value, config_key);
+						exit(EXIT_FAILURE);
+					}
+				} else if (strcmp(config_key, "limit") == 0) {
+					int limit = strtol(config_value, &remainder, 10);
+
+					if (limit < 0) {
+						fprintf(stderr, "Warning: Invalid limit, ignoring.");
+					} else {
+						switches.limit = limit;
+					}
+				} else if (strcmp(config_key, "unmatched error") == 0) {
+					unmatched_error = 1;
+				} else if (strcmp(config_key, "wildcard") == 0) {
+					wildcard = config_value[0];
+				}
+			} else if (strlen(config_key)) {
+				fprintf(stderr,
+					"Warning: Ignoring empty config property '%s'.\n",
+					config_key);
+			}
+		}
+
+		fclose(fp);
+	} else if (override_config_file) {
+		perror("fopen");
 		exit(EXIT_FAILURE);
 	}
 
@@ -256,6 +342,14 @@ int main(int argc, char **argv) {
 
 		while (optind < argc) {
 			patterns[i++] = argv[optind++];
+
+			if (wildcard) {
+				for (size_t j = 0; j < strlen(patterns[i - 1]); j++) {
+					if (patterns[i - 1][j] == wildcard) {
+						patterns[i - 1][j] = '*';
+					}
+				}
+			}
 		}
 
 		if (recurse_find(patterns, &pattern_count, root, &switches)) {
@@ -266,9 +360,13 @@ int main(int argc, char **argv) {
 		free_ignores(global_ignores);
 		free_ignores(config_ignores);
 		free_ignores(local_ignores);
+
+		if (unmatched_error && switches.count == 0) {
+			exit(EXIT_FAILURE);
+		}
 	} else {
 		usage(NULL);
 	}
 
-	return 0;
+	exit(EXIT_SUCCESS);
 }
