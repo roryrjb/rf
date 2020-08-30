@@ -1,4 +1,3 @@
-# vim: ft=config
 # this is a default config file for rf
 # the options as presented here should match the default behaviour
 # of rf and should give you an overview of what is configurable
@@ -27,3 +26,5 @@ limit = 0
 #   rf {pattern} || fallback
 #
 # unmatched error
+
+# vim: ft=config
