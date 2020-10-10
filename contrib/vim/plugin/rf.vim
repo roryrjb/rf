@@ -3,6 +3,7 @@ if exists('loaded_rf')
 endif
 
 let loaded_rf = 1
+let g:rf_prefix = ""
 
 set errorformat+=%f
 
@@ -60,15 +61,26 @@ function! g:RFPrompt()
             echo "RF: " . l:rf_pattern
             redraw
 
-            let results = system('rf -ws -- ' . shellescape(l:rf_pattern))
+            if len(g:rf_prefix)
+                let results = system('rf -l9 -d ' . shellescape(g:rf_prefix) . ' -s -- ' . shellescape(l:rf_pattern))
+            else
+                let results = system('rf -l9 -ws -- ' . shellescape(l:rf_pattern))
+            endif
+
             let results_list = split(results, '\n')
             let l:rf_results = results_list
 
             if len(results_list) > 0
-                cgete results | copen 9
+                if len(results_list) < 9
+                    execute "cgete results | copen " . len(results_list)
+                else
+                    cgete results | copen 9
+                endif
+
                 redraw
             else
                 cexpr []
+                cclose
             endif
         else
             let l:rf_cmd = 0
