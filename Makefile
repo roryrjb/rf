@@ -17,7 +17,16 @@ all: $(BIN)
 $(BIN): $(OBJS)
 	$(CC) $(CFLAGS) -o $(BIN) $(OBJS)
 
-install: $(BIN)
+rf.1: rf.1.scd
+	scdoc < $< > $@
+
+rfignore.5: rfignore.5.scd
+	scdoc < $< > $@
+
+rfconfig.5: rfconfig.5.scd
+	scdoc < $< > $@
+
+install: $(BIN) rf.1 rfignore.5 rfconfig.5
 	mkdir -p \
 		$(DESTDIR)$(PREFIX)/bin \
 		$(DESTDIR)$(PREFIX)/man/man1 \
@@ -28,4 +37,4 @@ install: $(BIN)
 	install -m444 rfconfig.5 $(DESTDIR)$(PREFIX)/man/man5/
 
 clean:
-	rm -vf $(BIN) *.o
+	rm -vf $(BIN) *.o *.1 *.5
