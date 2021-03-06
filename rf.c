@@ -17,6 +17,11 @@
 
 #include "config.h"
 #include "ignore.h"
+#include "include/common/common.h"
+
+#define IGNORE "ignore"
+#define CONFIG "config"
+#define RFIGNORE "rfignore"
 
 extern char *__progname;
 
@@ -96,7 +101,7 @@ static int recurse_find(char **patterns, int *pattern_count,
 	DIR *dir;
 
 	char path[MAXPATHLEN] = {'\0'};
-	strcat(path, dirname);
+	strlcat(path, dirname, MAXPATHLEN);
 	dir = opendir(path);
 
 	if (dir != NULL && !excluded(dirname)) {
@@ -107,13 +112,13 @@ static int recurse_find(char **patterns, int *pattern_count,
 			int p = 0;
 
 			char full_path[MAXPATHLEN] = {'\0'};
-			strcat(full_path, path);
+			strlcat(full_path, path, MAXPATHLEN);
 
 			if (full_path[strlen(full_path) - 1] != '/') {
-				strcat(full_path, "/");
+				strlcat(full_path, "/", MAXPATHLEN);
 			}
 
-			strcat(full_path, entry->d_name);
+			strlcat(full_path, entry->d_name, MAXPATHLEN);
 
 			struct stat entry_stat;
 
@@ -256,9 +261,13 @@ int main(int argc, char **argv) {
 						 : (strlen(cwd) + strlen(".rfignore") + 1)];
 
 	if (xdg_config_home) {
-		sprintf(config_file, "%s/rf/%s", xdg_config_home, "config");
+		const char *pattern = "%s/rf/%s";
+		int len = (strlen(pattern) + strlen(xdg_config_home) + strlen(CONFIG));
+		snprintf(config_file, len, pattern, xdg_config_home, CONFIG);
 	} else {
-		sprintf(config_file, "%s/.config/rf/%s", home, "config");
+		const char *pattern = "%s/.config/rf/%s";
+		int len = (strlen(pattern) + strlen(home) + strlen(CONFIG));
+		snprintf(config_file, len, pattern, home, CONFIG);
 	}
 
 	fp = fopen(override_config_file ? override_config_file : config_file, "r");
@@ -320,13 +329,23 @@ int main(int argc, char **argv) {
 									  3)
 								: (strlen(cwd) + strlen(".rfignore") + 1)];
 	char local_ignore_path[strlen(cwd) + strlen(".rfignore") + 1];
-	sprintf(global_ignore_path, "%s/%s", home, ".rfignore");
-	sprintf(local_ignore_path, "%s/%s", cwd, ".rfignore");
+
+	const char *pattern = "%s/%s";
+	snprintf(global_ignore_path,
+		(strlen(pattern) + strlen(home) + strlen(RFIGNORE)), pattern, home,
+		RFIGNORE);
+	snprintf(local_ignore_path,
+		(strlen(pattern) + strlen(cwd) + strlen(RFIGNORE)), pattern, cwd,
+		RFIGNORE);
 
 	if (xdg_config_home) {
-		sprintf(config_ignore_path, "%s/rf/%s", xdg_config_home, "ignore");
+		const char *pattern = "%s/rf/%s";
+		int len = (strlen(pattern) + strlen(xdg_config_home) + strlen(IGNORE));
+		snprintf(config_ignore_path, len, pattern, xdg_config_home, IGNORE);
 	} else {
-		sprintf(config_ignore_path, "%s/.config/rf/%s", home, "ignore");
+		const char *pattern = "%s/.config/rf/%s";
+		int len = (strlen(pattern) + strlen(home) + strlen(IGNORE));
+		snprintf(config_ignore_path, len, pattern, home, IGNORE);
 	}
 
 	global_ignores = init_ignores(global_ignore_path);
