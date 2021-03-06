@@ -2,20 +2,24 @@
 
 BIN = rf
 VERSION = 0.0.5
-OBJS = rf.o ignore.o config.o
+OBJS = rf.o ignore.o config.o include/common/strl.o
 PREFIX = /usr/local
 CC = cc
+INCLUDE += -Iinclude/common
 CFLAGS = -std=c99 -pedantic -O2 \
 	  -Wall -Wextra -Wsign-compare \
 	  -fstack-protector-strong -fpie \
 	  -D_FORTIFY_SOURCE=2 \
 	  -DVERSION='"$(VERSION)"' \
-	  -DNAME='"$(BIN)"'
+	  $(INCLUDE)
 
 all: $(BIN)
 
 $(BIN): $(OBJS)
 	$(CC) $(CFLAGS) -o $(BIN) $(OBJS)
+
+static: $(OBJS)
+	$(CC) $(CFLAGS) -static -o $(BIN) $(OBJS)
 
 rf.1: rf.1.scd
 	scdoc < $< > $@
@@ -37,4 +41,5 @@ install: $(BIN) rf.1 rfignore.5 rfconfig.5
 	install -m444 rfconfig.5 $(DESTDIR)$(PREFIX)/man/man5/
 
 clean:
-	rm -vf $(BIN) *.o *.1 *.5
+	@rm -vf $(BIN) *.1 *.5
+	@find . -name \*.o -exec rm -v {} +
