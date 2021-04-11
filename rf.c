@@ -196,6 +196,7 @@ int main(int argc, char **argv) {
 		.wholename = 0,
 	};
 
+	int exit_code = EXIT_SUCCESS;
 	int ch;
 	char *remainder;
 	size_t len = 0;
@@ -374,16 +375,19 @@ int main(int argc, char **argv) {
 		};
 
 		free(patterns);
-		free_ignores(global_ignores);
-		free_ignores(config_ignores);
-		free_ignores(local_ignores);
 
 		if (unmatched_error && switches.count == 0) {
-			exit(EXIT_FAILURE);
+			exit_code = EXIT_FAILURE;
+			goto bail;
 		}
 	} else {
 		usage(NULL);
 	}
 
-	exit(EXIT_SUCCESS);
+bail:
+	free_ignores(global_ignores);
+	free_ignores(config_ignores);
+	free_ignores(local_ignores);
+
+	exit(exit_code);
 }
