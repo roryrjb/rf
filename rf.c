@@ -357,8 +357,6 @@ int main(int argc, char **argv) {
 		int pattern_count = argc - optind;
 		char **patterns = (char **)calloc(sizeof(char *), pattern_count);
 
-		memset(patterns, '\0', optind);
-
 		while (optind < argc) {
 			patterns[i++] = argv[optind++];
 
