@@ -4,9 +4,8 @@ BIN = rf
 VERSION = 0.0.5
 OBJS = rf.o ignore.o config.o include/common/strl.o
 PREFIX = /usr/local
-CC = cc
 INCLUDE += -Iinclude/common
-CFLAGS = -std=c99 -pedantic -O2 \
+CFLAGS := -std=c99 -pedantic -O2 \
 	  -Wall -Wextra -Wsign-compare \
 	  -fstack-protector-strong -fpie \
 	  -D_FORTIFY_SOURCE=2 \
