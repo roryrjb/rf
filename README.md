@@ -6,13 +6,37 @@
 
 ### From Source
 
-Absolute minimum requirements are a C99 compiler. `rf` has been successfully
-tested on OpenBSD, FreeBSD and Linux (with glibc and musl), on amd64 and arm
-and with clang and gcc. For man pages you will require
+__Requirements:__
+
+Minimum requirements are a C99 compiler and a POSIX-like environment. The build
+system is `make`, any flavour _should_ be fine. For man pages you will require
 [__scdoc__(1)](https://sr.ht/~sircmpwn/scdoc/).
 
-    $ make install
+__Building:__
+
+Unless you have custom requirements, just use `make`, the following options
+are available:
+
+    $ make              # -> dynamic binary
+    $ make static       # -> static binary
+    # make install      # -> install dynamic binary and man pages to PREFIX
 
 ## Usage
 
-See `man rf` for more details and examples.
+### Command Line
+
+Let's start with a few simple examples.
+
+If you want to find all `.c` files recursively from the current directory:
+
+    $ rf \*.c
+
+This is essentially a shortened version of the traditional `find . -name \*.c`.
+Underneath rf uses [`fnmatch`](https://man.openbsd.org/fnmatch) so all the usual
+glob rules apply. You can also use substring matching instead, something like:
+
+    $ rf -s hello
+
+This would match any files with 'hello' any where in the name. Although this is
+less flexible, it can potentially make things easier and faster depending on
+the particular use case.
