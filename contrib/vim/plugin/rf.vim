@@ -7,8 +7,9 @@ let g:rf_prefix = ""
 
 set errorformat+=%f
 
-function! g:RFGrepR(args, ft)
-    let results = system('grep -nrI ' . shellescape(a:args) . " $(rf -- " . shellescape(a:ft) . ")")
+function! g:RFGrepR(args)
+    " let results = system('grep -nrI ' . shellescape(a:args) . " $(rf -- " . shellescape(a:ft) . ")")
+    let results = system("rf -s'' | xargs grep -nrI '" . shellescape(a:args) . "'")
     cgete results | copen 9
 endfunction
 
