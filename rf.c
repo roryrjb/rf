@@ -3,6 +3,7 @@
 
 #define _XOPEN_SOURCE 700
 
+#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fnmatch.h>
@@ -95,6 +96,44 @@ static int excluded(const char *name) {
 	return 0;
 }
 
+char *escape_string(char *input) {
+	char ch;
+	int i = 0;
+	int j = 0;
+	char *output = calloc(sizeof(char), strlen(input) * 2);
+
+	while ((ch = input[i]) != '\0') {
+		switch (ch) {
+		case ' ':
+		case '\t':
+		case '\'':
+		case '(':
+		case ')':
+			output[j++] = '\\';
+			output[j++] = ch;
+			i++;
+			break;
+		default:
+			output[j++] = input[i++];
+		}
+	}
+
+	return output;
+}
+
+int has_spaces(char *input) {
+	char ch;
+	int i = 0;
+
+	while ((ch = input[i++]) != '\0') {
+		if (isspace(ch)) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
 /* return 1 if breaking early (e.g. reaching limit) otherwise return 0 */
 static int recurse_find(char **patterns, int *pattern_count,
 	const char *dirname, struct switches *switches) {
@@ -170,7 +209,9 @@ static int recurse_find(char **patterns, int *pattern_count,
 
 			if (matched) {
 				if (is_child(entry->d_name) != 0) {
-					printf("%s\n", full_path);
+					char *escaped = escape_string(full_path);
+					printf("%s\n", escaped);
+					free(escaped);
 				}
 
 				if (switches->limit > 0 &&
