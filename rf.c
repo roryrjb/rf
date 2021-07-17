@@ -22,7 +22,7 @@
 
 #define IGNORE "ignore"
 #define CONFIG "config"
-#define RFIGNORE "rfignore"
+#define RFIGNORE ".rfignore"
 
 extern char *__progname;
 
