@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#if !defined(BSD)
+#if !defined(BSD) && !defined(__APPLE__)
 
 #include "strl.h"
 
