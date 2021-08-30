@@ -4,6 +4,21 @@
 
 ## Installation
 
+### Platform Support
+
+Ideally all the following platforms will eventually be supported:
+
+- [X] Linux glibc
+- [X] Linux musl
+- [X] macOS
+- [ ] Win32
+- [X] FreeBSD
+- [X] OpenBSD
+- [ ] NetBSD
+- [ ] DragonFlyBSD
+- [ ] illumos
+- [ ] Haiku
+
 ### From Source
 
 __Requirements:__
