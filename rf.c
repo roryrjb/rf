@@ -45,9 +45,8 @@ static void usage(char *error) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(stderr,
-		"usage: %s [-d directory] [-c config] [-lsvw] pattern ...\n",
-		__progname);
+	fprintf(
+		stderr, "usage: %s [-d directory] [-lsvw] pattern ...\n", __progname);
 }
 
 static int is_child(char *dirname) {
@@ -206,7 +205,6 @@ int main(int argc, char **argv) {
 	char cwd[MAXPATHLEN];
 	int unmatched_error = 0;
 	char wildcard = 0;
-	char *override_config_file = NULL;
 
 	if (getcwd(cwd, MAXPATHLEN) == NULL) {
 		perror("getcwd");
@@ -216,12 +214,8 @@ int main(int argc, char **argv) {
 	char *xdg_config_home = getenv("XDG_CONFIG_HOME");
 	char *home = getenv("HOME");
 
-	while ((ch = getopt(argc, argv, "c:d:l:svw")) > -1) {
+	while ((ch = getopt(argc, argv, "d:l:svw")) > -1) {
 		switch (ch) {
-		case 'c':
-			override_config_file = optarg;
-			break;
-
 		case 'd':
 			root = optarg;
 			break;
@@ -272,7 +266,7 @@ int main(int argc, char **argv) {
 		snprintf(config_file, len, pattern, home, CONFIG);
 	}
 
-	fp = fopen(override_config_file ? override_config_file : config_file, "r");
+	fp = fopen(config_file, "r");
 
 	if (fp != NULL) {
 		while ((config_get(&len, fp)) != -1) {
@@ -320,9 +314,6 @@ int main(int argc, char **argv) {
 		}
 
 		fclose(fp);
-	} else if (override_config_file) {
-		perror("fopen");
-		exit(EXIT_FAILURE);
 	}
 
 	char global_ignore_path[(strlen(home) + strlen(".rfignore") + 1)];
