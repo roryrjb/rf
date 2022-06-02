@@ -16,18 +16,15 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "config.h"
 #include "ignore.h"
 #include "include/common/common.h"
 
 #define IGNORE "ignore"
-#define CONFIG "config"
 #define RFIGNORE ".rfignore"
 
 extern char *__progname;
 
 struct ignores *global_ignores;
-struct ignores *config_ignores;
 struct ignores *local_ignores;
 
 struct switches {
@@ -65,16 +62,6 @@ static int excluded(const char *name) {
 	if (global_ignores != NULL) {
 		for (int i = 0; i < global_ignores->size; i++) {
 			int res = fnmatch(global_ignores->list[i], name, 0);
-
-			if (res == 0) {
-				return 1;
-			}
-		}
-	}
-
-	if (config_ignores != NULL) {
-		for (int i = 0; i < config_ignores->size; i++) {
-			int res = fnmatch(config_ignores->list[i], name, 0);
 
 			if (res == 0) {
 				return 1;
@@ -199,9 +186,7 @@ int main(int argc, char **argv) {
 	int exit_code = EXIT_SUCCESS;
 	int ch;
 	char *remainder;
-	size_t len = 0;
 	const char *root = ".";
-	FILE *fp;
 	char cwd[MAXPATHLEN];
 	int unmatched_error = 0;
 	char wildcard = 0;
@@ -211,7 +196,6 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	char *xdg_config_home = getenv("XDG_CONFIG_HOME");
 	char *home = getenv("HOME");
 
 	while ((ch = getopt(argc, argv, "d:l:svw")) > -1) {
@@ -252,75 +236,7 @@ int main(int argc, char **argv) {
 		}
 	}
 
-	char config_file[xdg_config_home
-						 ? (strlen(xdg_config_home) + strlen("ignore") + 3)
-						 : (strlen(cwd) + strlen(".rfignore") + 1)];
-
-	if (xdg_config_home) {
-		const char *pattern = "%s/rf/%s";
-		int len = (strlen(pattern) + strlen(xdg_config_home) + strlen(CONFIG));
-		snprintf(config_file, len, pattern, xdg_config_home, CONFIG);
-	} else {
-		const char *pattern = "%s/.config/rf/%s";
-		int len = (strlen(pattern) + strlen(home) + strlen(CONFIG));
-		snprintf(config_file, len, pattern, home, CONFIG);
-	}
-
-	fp = fopen(config_file, "r");
-
-	if (fp != NULL) {
-		while ((config_get(&len, fp)) != -1) {
-			if (strlen(config_key) && strlen(config_value)) {
-				if (strcmp(config_key, "symlinks") == 0) {
-					if (strcmp(config_value, "true") == 0) {
-						read_links = 1;
-					} else if (strcmp(config_value, "false") == 0) {
-						read_links = 0;
-					} else {
-						fprintf(stderr,
-							"'%s' is not a valid value for property: %s.\n",
-							config_value, config_key);
-						exit(EXIT_FAILURE);
-					}
-				} else if (strcmp(config_key, "wholename") == 0) {
-					if (strcmp(config_value, "true") == 0) {
-						switches.wholename = 1;
-					} else if (strcmp(config_value, "false") == 0) {
-						/* default */
-					} else {
-						fprintf(stderr,
-							"'%s' is not a valid value for property: %s.\n",
-							config_value, config_key);
-						exit(EXIT_FAILURE);
-					}
-				} else if (strcmp(config_key, "limit") == 0) {
-					int limit = strtol(config_value, &remainder, 10);
-
-					if (limit < 0) {
-						fprintf(stderr, "Warning: Invalid limit, ignoring.");
-					} else {
-						switches.limit = limit;
-					}
-				} else if (strcmp(config_key, "unmatched error") == 0) {
-					unmatched_error = 1;
-				} else if (strcmp(config_key, "wildcard") == 0) {
-					wildcard = config_value[0];
-				}
-			} else if (strlen(config_key)) {
-				fprintf(stderr,
-					"Warning: Ignoring empty config property '%s'.\n",
-					config_key);
-			}
-		}
-
-		fclose(fp);
-	}
-
 	char global_ignore_path[(strlen(home) + strlen(".rfignore") + 1)];
-	char config_ignore_path[xdg_config_home
-								? (strlen(xdg_config_home) + strlen("ignore") +
-									  3)
-								: (strlen(cwd) + strlen(".rfignore") + 1)];
 	char local_ignore_path[strlen(cwd) + strlen(".rfignore") + 1];
 
 	const char *pattern = "%s/%s";
@@ -331,18 +247,7 @@ int main(int argc, char **argv) {
 		(strlen(pattern) + strlen(cwd) + strlen(RFIGNORE)), pattern, cwd,
 		RFIGNORE);
 
-	if (xdg_config_home) {
-		const char *pattern = "%s/rf/%s";
-		int len = (strlen(pattern) + strlen(xdg_config_home) + strlen(IGNORE));
-		snprintf(config_ignore_path, len, pattern, xdg_config_home, IGNORE);
-	} else {
-		const char *pattern = "%s/.config/rf/%s";
-		int len = (strlen(pattern) + strlen(home) + strlen(IGNORE));
-		snprintf(config_ignore_path, len, pattern, home, IGNORE);
-	}
-
 	global_ignores = init_ignores(global_ignore_path);
-	config_ignores = init_ignores(config_ignore_path);
 	local_ignores = init_ignores(local_ignore_path);
 
 	if (optind < argc) {
@@ -378,7 +283,6 @@ int main(int argc, char **argv) {
 
 bail:
 	free_ignores(global_ignores);
-	free_ignores(config_ignores);
 	free_ignores(local_ignores);
 
 	exit(exit_code);

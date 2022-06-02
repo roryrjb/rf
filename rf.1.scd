@@ -6,7 +6,7 @@ rf - a tiny and simple file finder
 
 # SYNOPSIS
 
-*rf* [*-d* _directory_] [*-c* _config_] [*-lsvw*] [*pattern* _..._]
+*rf* [*-d* _directory_] [*pattern* _..._]
 
 # DESCRIPTION
 
@@ -17,9 +17,6 @@ substring) patterns, while respecting any ignore rules in *rfignore* files.
 
 *-d* directory
 	Search from specified directory, otherwise defaults to current working directory.
-
-*-c* config
-	Override config file location.
 
 *-l* count
 	Limit to specified matches count.
@@ -35,7 +32,7 @@ substring) patterns, while respecting any ignore rules in *rfignore* files.
 
 # SEE ALSO
 
-*rfignore*(5), *rfconfig*(5)
+*rfignore*(5)
 
 # COPYRIGHT
 

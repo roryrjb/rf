@@ -2,7 +2,7 @@
 
 BIN = rf
 VERSION = 0.0.5
-OBJS = rf.o ignore.o config.o include/common/strl.o
+OBJS = rf.o ignore.o include/common/strl.o
 PREFIX = /usr/local
 INCLUDE += -Iinclude/common
 CFLAGS := -std=c99 -pedantic -O2 \
@@ -26,10 +26,7 @@ rf.1: rf.1.scd
 rfignore.5: rfignore.5.scd
 	scdoc < $< > $@
 
-rfconfig.5: rfconfig.5.scd
-	scdoc < $< > $@
-
-install: $(BIN) rf.1 rfignore.5 rfconfig.5
+install: $(BIN) rf.1 rfignore.5
 	mkdir -p \
 		$(DESTDIR)$(PREFIX)/bin \
 		$(DESTDIR)$(PREFIX)/man/man1 \
@@ -37,7 +34,6 @@ install: $(BIN) rf.1 rfignore.5 rfconfig.5
 	install -m755 $(BIN) $(DESTDIR)$(PREFIX)/bin/
 	install -m444 rf.1 $(DESTDIR)$(PREFIX)/man/man1/
 	install -m444 rfignore.5 $(DESTDIR)$(PREFIX)/man/man5/
-	install -m444 rfconfig.5 $(DESTDIR)$(PREFIX)/man/man5/
 
 clean:
 	@rm -vf $(BIN) *.1 *.5
