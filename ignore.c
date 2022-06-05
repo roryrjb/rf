@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "rf.h"
 #include "ignore.h"
 
 static int total_size;
@@ -18,15 +19,14 @@ struct ignores *init_ignores(char *path) {
 		return NULL;
 	}
 
-	char *line = NULL;
-	size_t llen = 0;
+	char line[MAX_PATH_LENGTH];
 	total_size = IGNORE_SIZE;
 	struct ignores *ignores =
 		(struct ignores *)calloc(sizeof(struct ignores), 1);
 	ignores->list = (char **)calloc(sizeof(char *), IGNORE_SIZE);
 	ignores->size = 0;
 
-	while (getline(&line, &llen, ignore) != -1) {
+	while (fgets(line, MAX_PATH_LENGTH, ignore) != NULL) {
 		/** isspace doesn't necessarily hold true for `\n` for anything
 		 * other than the 'C' locale on some platforms, so we have to do
 		 * an additional check for this
@@ -64,7 +64,6 @@ struct ignores *init_ignores(char *path) {
 		}
 	}
 
-	free(line);
 	fclose(ignore);
 
 	ignores->size = i;
