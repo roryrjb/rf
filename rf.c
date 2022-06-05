@@ -22,8 +22,6 @@
 #define IGNORE "ignore"
 #define RFIGNORE ".rfignore"
 
-extern char *__progname;
-
 struct ignores *global_ignores;
 struct ignores *local_ignores;
 
@@ -42,8 +40,8 @@ static void usage(char *error) {
 		fprintf(stderr, "Error: %s\n\n", error);
 	}
 
-	fprintf(
-		stderr, "usage: %s [-d directory] [-lsvw] pattern ...\n", __progname);
+	fprintf(stderr, "rf version %s\n\n", VERSION);
+	fprintf(stderr, "usage: rf [-d directory] [-lsvw] pattern ...\n");
 }
 
 static int is_child(char *dirname) {
