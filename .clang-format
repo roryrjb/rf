@@ -6,3 +6,4 @@ IndentCaseLabels: false
 AlignAfterOpenBracket: DontAlign
 AllowAllParametersOfDeclarationOnNextLine: true
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ColumnLimit: 120

@@ -80,8 +80,7 @@ static int excluded(const char *name) {
 }
 
 /* return 1 if breaking early (e.g. reaching limit) otherwise return 0 */
-static int recurse_find(char **patterns, int *pattern_count,
-	const char *dirname, struct switches *switches) {
+static int recurse_find(char **patterns, int *pattern_count, const char *dirname, struct switches *switches) {
 	DIR *dir;
 
 	char path[MAXPATHLEN] = {'\0'};
@@ -114,8 +113,7 @@ static int recurse_find(char **patterns, int *pattern_count,
 
 			if (entry_stat.st_mode & S_IFDIR) {
 				if (is_child(entry->d_name) && !excluded(entry->d_name)) {
-					if (recurse_find(
-							patterns, pattern_count, full_path, switches)) {
+					if (recurse_find(patterns, pattern_count, full_path, switches)) {
 						closedir(dir);
 						return 1;
 					};
@@ -129,15 +127,11 @@ static int recurse_find(char **patterns, int *pattern_count,
 					char *pattern = patterns[p];
 
 					if (switches->substring) {
-						if (strstr(
-								switches->wholename ? full_path : entry->d_name,
-								pattern) != NULL) {
+						if (strstr(switches->wholename ? full_path : entry->d_name, pattern) != NULL) {
 							matched = 1;
 						}
 					} else {
-						if (fnmatch(pattern,
-								switches->wholename ? full_path : entry->d_name,
-								0) == 0) {
+						if (fnmatch(pattern, switches->wholename ? full_path : entry->d_name) == 0) {
 							matched = 1;
 						}
 					}
@@ -157,8 +151,7 @@ static int recurse_find(char **patterns, int *pattern_count,
 					printf("%s\n", full_path);
 				}
 
-				if (switches->limit > 0 &&
-					++switches->count == switches->limit) {
+				if (switches->limit > 0 && ++switches->count == switches->limit) {
 					closedir(dir);
 					return 1;
 				}
@@ -236,12 +229,8 @@ int main(int argc, char **argv) {
 	char local_ignore_path[strlen(cwd) + strlen(".rfignore") + 1];
 
 	const char *pattern = "%s/%s";
-	snprintf(global_ignore_path,
-		(strlen(pattern) + strlen(home) + strlen(RFIGNORE)), pattern, home,
-		RFIGNORE);
-	snprintf(local_ignore_path,
-		(strlen(pattern) + strlen(cwd) + strlen(RFIGNORE)), pattern, cwd,
-		RFIGNORE);
+	snprintf(global_ignore_path, (strlen(pattern) + strlen(home) + strlen(RFIGNORE)), pattern, home, RFIGNORE);
+	snprintf(local_ignore_path, (strlen(pattern) + strlen(cwd) + strlen(RFIGNORE)), pattern, cwd, RFIGNORE);
 
 	global_ignores = init_ignores(global_ignore_path);
 	local_ignores = init_ignores(local_ignore_path);

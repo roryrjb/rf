@@ -6,8 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "rf.h"
 #include "ignore.h"
+#include "rf.h"
 
 static int total_size;
 
@@ -21,8 +21,7 @@ struct ignores *init_ignores(char *path) {
 
 	char line[MAX_PATH_LENGTH];
 	total_size = IGNORE_SIZE;
-	struct ignores *ignores =
-		(struct ignores *)calloc(sizeof(struct ignores), 1);
+	struct ignores *ignores = (struct ignores *)calloc(sizeof(struct ignores), 1);
 	ignores->list = (char **)calloc(sizeof(char *), IGNORE_SIZE);
 	ignores->size = 0;
 
@@ -55,8 +54,7 @@ struct ignores *init_ignores(char *path) {
 			}
 
 			if (i + 1 > total_size) {
-				ignores->list = (char **)realloc(
-					ignores->list, sizeof(char *) * (total_size + IGNORE_SIZE));
+				ignores->list = (char **)realloc(ignores->list, sizeof(char *) * (total_size + IGNORE_SIZE));
 				total_size += IGNORE_SIZE;
 			}
 
