@@ -6,7 +6,6 @@
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
-#include <fnmatch.h>
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +14,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#ifdef _WIN32
+#include <shlwapi.h>
+#else
+#include <fnmatch.h>
+#endif
 
 #include "ignore.h"
 #include "include/common/common.h"
@@ -33,7 +38,6 @@ struct switches {
 	int wholename;
 };
 
-
 static void usage(char *error) {
 	if (error != NULL) {
 		fprintf(stderr, "Error: %s\n\n", error);
@@ -51,14 +55,18 @@ static int is_child(char *dirname) {
 	return 1;
 }
 
-static int excluded(const char *name) {
-	if (!fnmatch("/proc/*", name, 0)) {
-		return 1;
-	}
+static int match(char *spec, const char *filename) {
+#ifdef _WIN32
+	return !PathMatchSpecA(filename, spec);
+#else
+	return fnmatch(spec, filename, 0);
+#endif
+}
 
+static int excluded(const char *name) {
 	if (global_ignores != NULL) {
 		for (int i = 0; i < global_ignores->size; i++) {
-			int res = fnmatch(global_ignores->list[i], name, 0);
+			int res = match(global_ignores->list[i], name);
 
 			if (res == 0) {
 				return 1;
@@ -68,7 +76,7 @@ static int excluded(const char *name) {
 
 	if (local_ignores != NULL) {
 		for (int i = 0; i < local_ignores->size; i++) {
-			int res = fnmatch(local_ignores->list[i], name, 0);
+			int res = match(local_ignores->list[i], name);
 
 			if (res == 0) {
 				return 1;
@@ -97,15 +105,21 @@ static int recurse_find(char **patterns, int *pattern_count, const char *dirname
 			char full_path[MAXPATHLEN] = {'\0'};
 			strlcat(full_path, path, MAXPATHLEN);
 
+#ifdef _WIN32
+			if (full_path[strlen(full_path) - 1] != '\\') {
+				strlcat(full_path, "\\", MAXPATHLEN);
+			}
+#else
 			if (full_path[strlen(full_path) - 1] != '/') {
 				strlcat(full_path, "/", MAXPATHLEN);
 			}
+#endif
 
 			strlcat(full_path, entry->d_name, MAXPATHLEN);
 
 			struct stat entry_stat;
 
-			if ((read_links ? stat : lstat)(full_path, &entry_stat)) {
+			if (stat(full_path, &entry_stat)) {
 				perror("stat");
 				exit(EXIT_FAILURE);
 				continue;
@@ -131,7 +145,7 @@ static int recurse_find(char **patterns, int *pattern_count, const char *dirname
 							matched = 1;
 						}
 					} else {
-						if (fnmatch(pattern, switches->wholename ? full_path : entry->d_name) == 0) {
+						if (match(pattern, switches->wholename ? full_path : entry->d_name) == 0) {
 							matched = 1;
 						}
 					}
@@ -185,7 +199,11 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
+#ifdef _WIN32
+	char *home = getenv("USERPROFILE");
+#else
 	char *home = getenv("HOME");
+#endif
 
 	while ((ch = getopt(argc, argv, "d:l:svw")) > -1) {
 		switch (ch) {
@@ -228,7 +246,12 @@ int main(int argc, char **argv) {
 	char global_ignore_path[(strlen(home) + strlen(".rfignore") + 1)];
 	char local_ignore_path[strlen(cwd) + strlen(".rfignore") + 1];
 
+#ifdef _WIN32
+	const char *pattern = "%s\\%s";
+#else
 	const char *pattern = "%s/%s";
+#endif
+
 	snprintf(global_ignore_path, (strlen(pattern) + strlen(home) + strlen(RFIGNORE)), pattern, home, RFIGNORE);
 	snprintf(local_ignore_path, (strlen(pattern) + strlen(cwd) + strlen(RFIGNORE)), pattern, cwd, RFIGNORE);
 
