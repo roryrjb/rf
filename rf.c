@@ -187,7 +187,6 @@ int main(int argc, char **argv) {
 	const char *root = ".";
 	char cwd[MAXPATHLEN];
 	int unmatched_error = 0;
-	char wildcard = 0;
 
 	if (getcwd(cwd, MAXPATHLEN) == NULL) {
 		perror("getcwd");
@@ -255,14 +254,6 @@ int main(int argc, char **argv) {
 
 		while (optind < argc) {
 			patterns[i++] = argv[optind++];
-
-			if (wildcard) {
-				for (size_t j = 0; j < strlen(patterns[i - 1]); j++) {
-					if (patterns[i - 1][j] == wildcard) {
-						patterns[i - 1][j] = '*';
-					}
-				}
-			}
 		}
 
 		if (recurse_find(patterns, &pattern_count, root, &switches)) {
