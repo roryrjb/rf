@@ -1,7 +1,6 @@
 .POSIX:
 
 BIN = rf
-VERSION = 0.0.5
 OBJS = rf.o ignore.o include/common/strl.o
 PREFIX = /usr/local
 INCLUDE += -Iinclude/common

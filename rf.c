@@ -20,6 +20,7 @@
 #include "include/common/common.h"
 
 #define IGNORE "ignore"
+#define VERSION "0.0.6"
 #define RFIGNORE ".rfignore"
 
 struct ignores *global_ignores;
