@@ -19,7 +19,6 @@
 #include "ignore.h"
 #include "include/common/common.h"
 
-#define IGNORE "ignore"
 #define VERSION "0.0.6"
 #define RFIGNORE ".rfignore"
 
@@ -34,7 +33,6 @@ struct switches {
 	int wholename;
 };
 
-int read_links = 0;
 
 static void usage(char *error) {
 	if (error != NULL) {
