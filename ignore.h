@@ -3,6 +3,10 @@
 
 #define IGNORE_SIZE 100
 
+#ifdef _WIN32
+#define MAXPATHLEN 1024
+#endif
+
 struct ignores {
 	char **list;
 	int size;
